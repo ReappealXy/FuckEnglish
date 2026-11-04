@@ -100,7 +100,11 @@ func (l *Library) SaveTemplate(ctx context.Context) (string, error) {
 
 type Preferences struct{ core *Core }
 
-func (p *Preferences) Get() Settings { return p.core.settings().Settings }
+func (p *Preferences) Get() Settings {
+	s := p.core.settings().Settings
+	s.OpenAtLogin = mygo.App.OpenAtLogin()
+	return s
+}
 func (p *Preferences) Save(s Settings) (Settings, error) {
 	valid := map[string]bool{"capsule": true, "notch": true, "line": true}
 	if !valid[s.IslandStyle] {
@@ -111,8 +115,19 @@ func (p *Preferences) Save(s Settings) (Settings, error) {
 	s.IslandExpandDelay = max(0, min(s.IslandExpandDelay, 1200))
 	s.IslandCollapseDelay = max(120, min(s.IslandCollapseDelay, 2000))
 	s.IslandAnimationDuration = max(100, min(s.IslandAnimationDuration, 1000))
+	wasOpenAtLogin := mygo.App.OpenAtLogin()
+	if s.OpenAtLogin != wasOpenAtLogin {
+		if err := mygo.App.SetOpenAtLogin(s.OpenAtLogin); err != nil {
+			return p.Get(), err
+		}
+	}
 	_, err := p.core.change(func() error { p.core.cfg.Settings = s; return nil })
 	if err != nil {
+		if s.OpenAtLogin != wasOpenAtLogin {
+			if restoreErr := mygo.App.SetOpenAtLogin(wasOpenAtLogin); restoreErr != nil {
+				return p.Get(), fmt.Errorf("%w; 恢复开机启动状态失败：%v", err, restoreErr)
+			}
+		}
 		return p.Get(), err
 	}
 	_ = SettingsEvent.Broadcast(s)

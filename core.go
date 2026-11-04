@@ -29,6 +29,7 @@ type Settings struct {
 	IslandAnimationDuration int    `json:"islandAnimationDuration"`
 	IslandWidth             int    `json:"islandWidth"`
 	IslandHeight            int    `json:"islandHeight"`
+	OpenAtLogin             bool   `json:"openAtLogin"`
 }
 type settingsFile struct{ Settings }
 type config struct {
@@ -65,7 +66,7 @@ type Core struct {
 }
 
 func defaultSettings() Settings {
-	return Settings{true, "capsule", "dark", true, 160, 420, 360, 520, 200}
+	return Settings{IslandVisible: true, IslandStyle: "capsule", IslandTheme: "dark", IslandHover: true, IslandExpandDelay: 160, IslandCollapseDelay: 420, IslandAnimationDuration: 360, IslandWidth: 520, IslandHeight: 200}
 }
 func (c *Core) Init(dir string) error {
 	if err := os.MkdirAll(dir, 0700); err != nil {

@@ -1,8 +1,8 @@
 import { defineConfig } from "mygo-cli";
 export default defineConfig({
-  name: "FuckEnglish Preview",
-  identifier: "io.github.reappealxy.fuckenglish.preview011",
-  version: "0.1.1",
+  name: "FuckEnglish Preview 0.1.2",
+  identifier: "io.github.reappealxy.fuckenglish.preview012",
+  version: "0.1.2",
   devUrl: "http://localhost:5173",
   devCommand: "bun run dev:web",
   buildCommand: "bun run build:web",

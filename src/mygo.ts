@@ -50,6 +50,7 @@ export interface Settings {
   islandAnimationDuration: number;
   islandWidth: number;
   islandHeight: number;
+  openAtLogin: boolean;
 }
 
 export interface Word {

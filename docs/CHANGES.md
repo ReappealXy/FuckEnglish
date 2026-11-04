@@ -26,6 +26,14 @@ Description: 每页展示五个单词，设置页新增 Excel 模板保存入口
 
 大白话：一页多看一个词，还能从设置里保存一份标准单词表格。
 
+## 6. Windows 开机启动
+
+Summary: `feat: add Windows login startup setting`
+
+Description: 在常规设置增加开机启动开关，调用 MyGo 系统登录启动接口并在设置保存时应用；由登录启动时静默进入托盘和单词胶囊，不显示主设置窗口。
+
+大白话：勾选并保存后，登录 Windows 就会自动运行单词胶囊；关闭开关后会移除启动项。
+
 ## 3. 完成文件夹和外观设置
 
 Summary: `feat: configure wordbook folders and preserve island appearance`

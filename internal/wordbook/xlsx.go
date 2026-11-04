@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -38,6 +40,52 @@ type cell struct {
 	Kind   string   `xml:"t,attr"`
 	Value  string   `xml:"v"`
 	Inline richText `xml:"is"`
+}
+
+// WriteTemplate writes an empty Excel workbook with the accepted vocabulary headers.
+func WriteTemplate(filename string) error {
+	files := []struct{ name, body string }{
+		{"[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`},
+		{"_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+		{"xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="单词表" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+		{"xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`},
+		{"xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>英文单词</t></is></c><c r="B1" t="inlineStr"><is><t>音标</t></is></c><c r="C1" t="inlineStr"><is><t>英文单词释义</t></is></c><c r="D1" t="inlineStr"><is><t>常用短语</t></is></c></row></sheetData></worksheet>`},
+	}
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(filename), ".fuckenglish-template-*.xlsx")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+	z := zip.NewWriter(tmp)
+	for _, file := range files {
+		w, err := z.Create(file.name)
+		if err != nil {
+			z.Close()
+			tmp.Close()
+			return err
+		}
+		if _, err := io.WriteString(w, file.body); err != nil {
+			z.Close()
+			tmp.Close()
+			return err
+		}
+	}
+	if err := z.Close(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, filename)
 }
 
 // Read uses the first worksheet, resolving its relationship rather than assuming sheet1.xml.

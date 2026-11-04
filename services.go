@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"fuckenglish/internal/wordbook"
 	"github.com/egoist/mygo"
 )
 
@@ -76,6 +78,25 @@ func (l *Library) PickFolder(ctx context.Context) (string, error) {
 	return paths[0], nil
 }
 func (l *Library) OpenFolder() error { return mygo.Shell.OpenPath(l.core.snapshot().Folder) }
+
+func (l *Library) SaveTemplate(ctx context.Context) (string, error) {
+	path, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
+		Parent:      mygo.CallerWindow(ctx),
+		Title:       "保存 Excel 单词模板",
+		DefaultPath: "FuckEnglish-单词模板.xlsx",
+		Filters:     []mygo.FileFilter{{Name: "Excel 工作簿", Extensions: []string{"xlsx"}}},
+	})
+	if err != nil || path == "" {
+		return "", err
+	}
+	if !strings.EqualFold(filepath.Ext(path), ".xlsx") {
+		path += ".xlsx"
+	}
+	if err := wordbook.WriteTemplate(path); err != nil {
+		return "", err
+	}
+	return path, nil
+}
 
 type Preferences struct{ core *Core }
 

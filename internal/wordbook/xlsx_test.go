@@ -2,8 +2,10 @@ package wordbook
 
 import (
 	"archive/zip"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -25,6 +27,40 @@ func TestRealWordLists(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteTemplate(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), "template.xlsx")
+	if err := WriteTemplate(filename); err != nil {
+		t.Fatal(err)
+	}
+	z, err := zip.OpenReader(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer z.Close()
+	var sheet string
+	for _, f := range z.File {
+		if f.Name != "xl/worksheets/sheet1.xml" {
+			continue
+		}
+		r, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := io.ReadAll(r)
+		r.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		sheet = string(b)
+	}
+	for _, header := range []string{"英文单词", "音标", "英文单词释义", "常用短语"} {
+		if !strings.Contains(sheet, header) {
+			t.Errorf("template is missing header %q", header)
+		}
+	}
+}
+
 func fixture(t *testing.T, shared, sheet string) string {
 	t.Helper()
 	filename := filepath.Join(t.TempDir(), "list.xlsx")

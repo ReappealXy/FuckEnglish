@@ -77,6 +77,9 @@ export const Library = {
   refresh(): Promise<LibraryState> {
     return call("Library.Refresh");
   },
+  saveTemplate(): Promise<string> {
+    return call("Library.SaveTemplate");
+  },
   select(name: string): Promise<LibraryState> {
     return call("Library.Select", name);
   },

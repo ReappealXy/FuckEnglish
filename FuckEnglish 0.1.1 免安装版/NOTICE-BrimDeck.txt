@@ -1,0 +1,12 @@
+BrimDeck-derived island UI and themes
+
+The compact geometry, hover bridge, panel layout, typography, settings palette
+and bundled theme colors are adapted from MoFeng2223/BrimDeck.
+Original project: https://github.com/MoFeng2223/BrimDeck
+License: Apache License 2.0; see licenses/BrimDeck-APACHE-2.0.txt.
+The Go/Preact adaptation replaces BrimDeck content with local Excel vocabulary.
+
+Original theme JSON files and their authors, licenses and source links are
+preserved in BrimDeck-themes/. Color extensions identify their respective
+MIT-licensed upstream themes. Cyberpunk: Edgerunners is an unofficial color
+palette; no artwork, logos or fonts from that series are included.

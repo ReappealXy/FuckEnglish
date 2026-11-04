@@ -17,7 +17,7 @@ import (
 //go:embed words/*.xlsx
 var examples embed.FS
 
-const pageSize = 4
+const pageSize = 5
 
 type Settings struct {
 	IslandVisible           bool   `json:"islandVisible"`
@@ -36,6 +36,7 @@ type config struct {
 	Folder   string         `json:"folder"`
 	Selected string         `json:"selected"`
 	Pages    map[string]int `json:"pages"`
+	PageSize int            `json:"pageSize"`
 }
 type Book struct {
 	Name  string `json:"name"`
@@ -71,7 +72,7 @@ func (c *Core) Init(dir string) error {
 		return err
 	}
 	c.path = filepath.Join(dir, "settings.json")
-	c.cfg = config{Settings: defaultSettings(), Pages: map[string]int{}}
+	c.cfg = config{Settings: defaultSettings(), Pages: map[string]int{}, PageSize: pageSize}
 	b, err := os.ReadFile(c.path)
 	first := errors.Is(err, os.ErrNotExist)
 	if err != nil && !first {
@@ -85,6 +86,12 @@ func (c *Core) Init(dir string) error {
 	if c.cfg.Pages == nil {
 		c.cfg.Pages = map[string]int{}
 	}
+	if c.cfg.PageSize > 0 && c.cfg.PageSize != pageSize {
+		for book, page := range c.cfg.Pages {
+			c.cfg.Pages[book] = max(0, page*c.cfg.PageSize/pageSize)
+		}
+	}
+	c.cfg.PageSize = pageSize
 	if c.cfg.Folder == "" {
 		exe, _ := os.Executable()
 		c.cfg.Folder = filepath.Join(filepath.Dir(exe), "words")

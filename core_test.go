@@ -21,26 +21,26 @@ func TestPaginationAndBookResume(t *testing.T) {
 	c := testCore(t)
 	l := &Library{c}
 	s := l.Snapshot()
-	if s.Total != 50 || s.Pages != 13 || len(s.Words) != 4 || s.Words[0].English != "pioneer" {
+	if s.Total != 50 || s.Pages != 10 || len(s.Words) != 5 || s.Words[0].English != "pioneer" {
 		t.Fatalf("first page: %+v", s)
 	}
 	s, e := l.Page(999)
 	if e != nil {
 		t.Fatal(e)
 	}
-	if s.Page != 12 || len(s.Words) != 2 || s.Words[1].English != "rectify" {
+	if s.Page != 9 || len(s.Words) != 5 || s.Words[4].English != "rectify" {
 		t.Fatalf("last page: %+v", s)
 	}
 	if _, e = l.Select("list2.xlsx"); e != nil {
 		t.Fatal(e)
 	}
 	s, e = l.Select("list1.xlsx")
-	if e != nil || s.Page != 12 {
+	if e != nil || s.Page != 9 {
 		t.Fatalf("resume: %+v %v", s, e)
 	}
 	var disk config
 	b, _ := os.ReadFile(c.path)
-	if e = json.Unmarshal(b, &disk); e != nil || disk.Pages["list1.xlsx"] != 12 {
+	if e = json.Unmarshal(b, &disk); e != nil || disk.Pages["list1.xlsx"] != 9 {
 		t.Fatalf("disk: %+v %v", disk, e)
 	}
 	s, e = l.Page(-3)

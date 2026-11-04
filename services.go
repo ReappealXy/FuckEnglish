@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,14 @@ func (l *Library) Select(name string) (LibraryState, error) {
 		if _, ok := l.core.words[name]; !ok {
 			return fmt.Errorf("词表不可用：%s，请刷新或检查文件格式", name)
 		}
+		direction := l.core.quiz.direction
+		changed := l.core.cfg.Selected != name
 		l.core.cfg.Selected = name
+		if changed && direction != "" {
+			if err := l.core.startQuizLocked(direction); err != nil {
+				return err
+			}
+		}
 		l.core.focus = 0
 		return nil
 	})
@@ -29,7 +37,7 @@ func (l *Library) Select(name string) (LibraryState, error) {
 func (l *Library) Page(page int) (LibraryState, error) {
 	return l.core.change(func() error {
 		pages := (len(l.core.words[l.core.cfg.Selected]) + pageSize - 1) / pageSize
-		l.core.cfg.Pages[l.core.cfg.Selected] = max(0, min(page, max(0, pages-1)))
+		l.core.browsePagesLocked()[l.core.cfg.Selected] = max(0, min(page, max(0, pages-1)))
 		l.core.focus = 0
 		return nil
 	})
@@ -44,6 +52,20 @@ func (l *Library) Focus(index int) LibraryState {
 }
 func (l *Library) Refresh() (LibraryState, error) {
 	return l.core.change(func() error { l.core.scanLocked(); return nil })
+}
+
+func (l *Library) SetBrowseOrder(order string) (LibraryState, error) {
+	return l.core.change(func() error {
+		if order != "sequential" && order != "random" {
+			return fmt.Errorf("请选择顺序或乱序")
+		}
+		l.core.cfg.BrowseOrder = order
+		if order == "random" && l.core.cfg.ShuffleSeed == 0 {
+			l.core.cfg.ShuffleSeed = rand.Uint64()
+		}
+		l.core.focus = 0
+		return nil
+	})
 }
 func (l *Library) SetFolder(folder string) (LibraryState, error) {
 	abs, err := filepath.Abs(folder)
@@ -61,6 +83,7 @@ func (l *Library) SetFolder(folder string) (LibraryState, error) {
 		l.core.cfg.Folder = abs
 		l.core.cfg.Selected = ""
 		l.core.cfg.Pages = map[string]int{}
+		l.core.cfg.RandomPages = map[string]int{}
 		l.core.scanLocked()
 		if l.core.scanError != "" {
 			return fmt.Errorf("%s", l.core.scanError)

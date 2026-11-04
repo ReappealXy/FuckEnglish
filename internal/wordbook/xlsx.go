@@ -14,9 +14,11 @@ import (
 )
 
 type Word struct {
-	English  string `json:"english"`
-	Phonetic string `json:"phonetic"`
-	Meaning  string `json:"meaning"`
+	English            string   `json:"english"`
+	Phonetic           string   `json:"phonetic"`
+	Meaning            string   `json:"meaning"`
+	ChineseDistractors []string `json:"chineseDistractors"`
+	EnglishDistractors []string `json:"englishDistractors"`
 }
 
 type richText struct {
@@ -42,14 +44,25 @@ type cell struct {
 	Inline richText `xml:"is"`
 }
 
-// WriteTemplate writes an empty Excel workbook with the accepted vocabulary headers.
+// WriteTemplate includes optional, author-supplied distractors for both quiz directions.
 func WriteTemplate(filename string) error {
+	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3", "英文干扰项1", "英文干扰项2", "英文干扰项3"}
+	var sheet strings.Builder
+	sheet.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="2" width="20" customWidth="1"/><col min="3" max="3" width="60" customWidth="1"/><col min="4" max="4" width="50" customWidth="1"/><col min="5" max="7" width="28" customWidth="1"/><col min="8" max="10" width="22" customWidth="1"/></cols><sheetData><row r="1">`)
+	for i, header := range headers {
+		fmt.Fprintf(&sheet, `<c r="%c1" t="inlineStr"><is><t>`, 'A'+i)
+		if err := xml.EscapeText(&sheet, []byte(header)); err != nil {
+			return err
+		}
+		sheet.WriteString(`</t></is></c>`)
+	}
+	sheet.WriteString(`</row></sheetData></worksheet>`)
 	files := []struct{ name, body string }{
 		{"[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`},
 		{"_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
 		{"xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="单词表" sheetId="1" r:id="rId1"/></sheets></workbook>`},
 		{"xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`},
-		{"xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>英文单词</t></is></c><c r="B1" t="inlineStr"><is><t>音标</t></is></c><c r="C1" t="inlineStr"><is><t>英文单词释义</t></is></c><c r="D1" t="inlineStr"><is><t>常用短语</t></is></c></row></sheetData></worksheet>`},
+		{"xl/worksheets/sheet1.xml", sheet.String()},
 	}
 	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
 		return err
@@ -207,13 +220,32 @@ func Read(filename string) ([]Word, error) {
 				case "英文单词释义", "中文释义", "中文翻译", "释义", "翻译", "meaning", "translation":
 					columns["meaning"] = col
 				}
+				for _, direction := range []string{"中文", "英文"} {
+					for i := 1; i <= 3; i++ {
+						key := fmt.Sprintf("%s干扰项%d", direction, i)
+						if v == key {
+							columns[key] = col
+						}
+					}
+				}
 			}
-			if len(columns) == 3 {
+			_, english := columns["english"]
+			_, phonetic := columns["phonetic"]
+			_, meaning := columns["meaning"]
+			if english && phonetic && meaning {
 				header = true
 			}
 			continue
 		}
-		w := Word{values[columns["english"]], values[columns["phonetic"]], values[columns["meaning"]]}
+		w := Word{English: values[columns["english"]], Phonetic: values[columns["phonetic"]], Meaning: values[columns["meaning"]], ChineseDistractors: make([]string, 3), EnglishDistractors: make([]string, 3)}
+		for i := 0; i < 3; i++ {
+			if col, ok := columns[fmt.Sprintf("中文干扰项%d", i+1)]; ok {
+				w.ChineseDistractors[i] = values[col]
+			}
+			if col, ok := columns[fmt.Sprintf("英文干扰项%d", i+1)]; ok {
+				w.EnglishDistractors[i] = values[col]
+			}
+		}
 		if w.English != "" {
 			if w.Meaning == "" {
 				return nil, fmt.Errorf("单词 %q 缺少中文释义", w.English)

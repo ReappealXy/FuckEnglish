@@ -2,9 +2,12 @@ package wordbook
 
 import (
 	"archive/zip"
+	"encoding/xml"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -54,9 +57,23 @@ func TestWriteTemplate(t *testing.T) {
 		}
 		sheet = string(b)
 	}
-	for _, header := range []string{"英文单词", "音标", "英文单词释义", "常用短语"} {
-		if !strings.Contains(sheet, header) {
-			t.Errorf("template is missing header %q", header)
+	var parsed struct {
+		Rows []struct {
+			Cells []cell `xml:"c"`
+		} `xml:"sheetData>row"`
+	}
+	if err := xml.Unmarshal([]byte(sheet), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3", "英文干扰项1", "英文干扰项2", "英文干扰项3"}
+	if len(parsed.Rows) != 1 || len(parsed.Rows[0].Cells) != len(headers) {
+		t.Fatalf("expected an empty template with exactly ten headers: %s", sheet)
+	}
+	for i, header := range headers {
+		c := parsed.Rows[0].Cells[i]
+		wantRef := string(rune('A'+i)) + "1"
+		if c.Ref != wantRef || c.Kind != "inlineStr" || c.Inline.value() != header {
+			t.Errorf("header %s: got %+v, want %q", wantRef, c, header)
 		}
 	}
 }
@@ -107,5 +124,33 @@ func TestRejectMissingHeadersAndCorruption(t *testing.T) {
 	os.WriteFile(bad, []byte("not Excel"), 0600)
 	if _, e := Read(bad); e == nil {
 		t.Fatal("corrupt file accepted")
+	}
+}
+
+func TestOptionalDistractorsWithReorderedSparseColumns(t *testing.T) {
+	headers := []string{"英文干扰项3", "中文干扰项2", "英文单词", "中文释义", "中文干扰项1", "音标", "英文干扰项1", "中文干扰项3", "英文干扰项2"}
+	values := []string{"runway", "飞行员", "aircraft", "航空器", "机场", "", "airport", "跑道", "pilot"}
+	var sheet strings.Builder
+	sheet.WriteString(`<worksheet><sheetData>`)
+	for row, cells := range [][]string{headers, values} {
+		fmt.Fprintf(&sheet, `<row r="%d">`, row+1)
+		for col, value := range cells {
+			fmt.Fprintf(&sheet, `<c r="%c%d" t="inlineStr"><is><t>%s</t></is></c>`, 'B'+col*2, row+1, value)
+		}
+		sheet.WriteString(`</row>`)
+	}
+	sheet.WriteString(`</sheetData></worksheet>`)
+	words, err := Read(fixture(t, "", sheet.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(words) != 1 || words[0].English != "aircraft" || !reflect.DeepEqual(words[0].ChineseDistractors, []string{"机场", "飞行员", "跑道"}) || !reflect.DeepEqual(words[0].EnglishDistractors, []string{"airport", "pilot", "runway"}) {
+		t.Fatalf("parsed: %+v", words)
+	}
+	for _, filename := range []string{"list1.xlsx", "list2.xlsx"} {
+		words, err := Read(filepath.Join("..", "..", "words", filename))
+		if err != nil || len(words) != 50 || len(words[0].ChineseDistractors) != 3 || words[0].ChineseDistractors[0] != "" {
+			t.Fatalf("old workbook no longer browsable: %v", err)
+		}
 	}
 }

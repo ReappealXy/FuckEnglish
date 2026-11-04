@@ -65,5 +65,9 @@ export function IslandView() {
     onLeave={nativePointer ? undefined : () => hover.current.leave(state.current.settings?.islandCollapseDelay ?? 420)}
     onExpand={() => { hover.current.cancel(); transition.current(true); }} onCollapse={() => { hover.current.cancel(); transition.current(false); }}
     onSettings={() => void action(() => Island.openSettings())} onSelect={name => void action(() => Library.select(name))}
-    onPage={page => void action(() => Library.page(page))} onFocus={index => void action(() => Library.focus(index))} />;
+    onPage={page => void action(() => Library.page(page))} onFocus={index => void action(() => Library.focus(index))}
+    onMode={mode => void action(() => mode === "browse" ? Library.endQuiz() : Library.startQuiz(mode))}
+    onOrder={order => void action(() => Library.setBrowseOrder(order))}
+    onAnswer={(token, choice) => void action(() => Library.answerQuiz(token, choice))}
+    onNext={token => void action(() => Library.nextQuiz(token))} />;
 }

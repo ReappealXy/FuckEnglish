@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"sort"
@@ -34,10 +36,13 @@ type Settings struct {
 type settingsFile struct{ Settings }
 type config struct {
 	Settings
-	Folder   string         `json:"folder"`
-	Selected string         `json:"selected"`
-	Pages    map[string]int `json:"pages"`
-	PageSize int            `json:"pageSize"`
+	Folder      string         `json:"folder"`
+	Selected    string         `json:"selected"`
+	Pages       map[string]int `json:"pages"`
+	PageSize    int            `json:"pageSize"`
+	BrowseOrder string         `json:"browseOrder"`
+	ShuffleSeed uint64         `json:"shuffleSeed"`
+	RandomPages map[string]int `json:"randomPages"`
 }
 type Book struct {
 	Name  string `json:"name"`
@@ -45,24 +50,29 @@ type Book struct {
 	Error string `json:"error"`
 }
 type LibraryState struct {
-	Folder   string          `json:"folder"`
-	Books    []Book          `json:"books"`
-	Selected string          `json:"selected"`
-	Words    []wordbook.Word `json:"words"`
-	Page     int             `json:"page"`
-	Pages    int             `json:"pages"`
-	Total    int             `json:"total"`
-	Focus    int             `json:"focus"`
-	Error    string          `json:"error"`
+	Folder      string          `json:"folder"`
+	Books       []Book          `json:"books"`
+	Selected    string          `json:"selected"`
+	Words       []wordbook.Word `json:"words"`
+	Page        int             `json:"page"`
+	Pages       int             `json:"pages"`
+	Total       int             `json:"total"`
+	Focus       int             `json:"focus"`
+	Error       string          `json:"error"`
+	BrowseOrder string          `json:"browseOrder"`
+	Quiz        QuizState       `json:"quiz"`
 }
 type Core struct {
-	mu        sync.Mutex
-	path      string
-	cfg       config
-	books     []Book
-	words     map[string][]wordbook.Word
-	focus     int
-	scanError string
+	mu           sync.Mutex
+	path         string
+	cfg          config
+	books        []Book
+	words        map[string][]wordbook.Word
+	focus        int
+	scanError    string
+	quiz         quizSession
+	shuffleCache map[string][]int
+	shuffleSeed  uint64
 }
 
 func defaultSettings() Settings {
@@ -148,6 +158,8 @@ func (c *Core) saveLocked() error {
 	return os.Rename(name, c.path)
 }
 func (c *Core) scanLocked() {
+	c.quiz = quizSession{}
+	c.shuffleCache = nil
 	c.books = []Book{}
 	c.words = map[string][]wordbook.Word{}
 	c.scanError = ""
@@ -184,11 +196,51 @@ func (c *Core) scanLocked() {
 func (c *Core) snapshotLocked() LibraryState {
 	words := c.words[c.cfg.Selected]
 	pages := (len(words) + pageSize - 1) / pageSize
-	page := max(0, min(c.cfg.Pages[c.cfg.Selected], max(0, pages-1)))
+	page := max(0, min(c.browsePagesLocked()[c.cfg.Selected], max(0, pages-1)))
 	start := min(page*pageSize, len(words))
 	end := min(start+pageSize, len(words))
 	visible := append([]wordbook.Word{}, words[start:end]...)
-	return LibraryState{c.cfg.Folder, c.books, c.cfg.Selected, visible, page, pages, len(words), max(0, min(c.focus, max(0, len(visible)-1))), c.scanError}
+	if c.cfg.BrowseOrder == "random" {
+		indices := c.browseIndicesLocked()
+		for i := range visible {
+			visible[i] = words[indices[start+i]]
+		}
+	}
+	order := "sequential"
+	if c.cfg.BrowseOrder == "random" {
+		order = "random"
+	}
+	return LibraryState{Folder: c.cfg.Folder, Books: c.books, Selected: c.cfg.Selected, Words: visible, Page: page, Pages: pages, Total: len(words), Focus: max(0, min(c.focus, max(0, len(visible)-1))), Error: c.scanError, BrowseOrder: order, Quiz: c.quizSnapshotLocked()}
+}
+
+func (c *Core) browsePagesLocked() map[string]int {
+	if c.cfg.BrowseOrder == "random" {
+		if c.cfg.RandomPages == nil {
+			c.cfg.RandomPages = map[string]int{}
+		}
+		return c.cfg.RandomPages
+	}
+	if c.cfg.Pages == nil {
+		c.cfg.Pages = map[string]int{}
+	}
+	return c.cfg.Pages
+}
+
+// Cache one stable permutation per book. Page changes never reshuffle it.
+func (c *Core) browseIndicesLocked() []int {
+	if c.shuffleCache == nil || c.shuffleSeed != c.cfg.ShuffleSeed {
+		c.shuffleCache = map[string][]int{}
+		c.shuffleSeed = c.cfg.ShuffleSeed
+	}
+	if indices, ok := c.shuffleCache[c.cfg.Selected]; ok {
+		return indices
+	}
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(c.cfg.Selected))
+	rng := rand.New(rand.NewPCG(c.cfg.ShuffleSeed, h.Sum64()))
+	indices := rng.Perm(len(c.words[c.cfg.Selected]))
+	c.shuffleCache[c.cfg.Selected] = indices
+	return indices
 }
 func (c *Core) snapshot() LibraryState { c.mu.Lock(); defer c.mu.Unlock(); return c.snapshotLocked() }
 func (c *Core) publish()               { _ = LibraryEvent.Broadcast(c.snapshot()) }
@@ -196,6 +248,7 @@ func (c *Core) change(run func() error) (LibraryState, error) {
 	c.mu.Lock()
 	// Preferences and navigation are committed together; restore on disk failures.
 	old, _ := json.Marshal(c.cfg)
+	oldQuiz := c.quiz
 	err := run()
 	if err == nil {
 		err = c.saveLocked()
@@ -205,6 +258,7 @@ func (c *Core) change(run func() error) (LibraryState, error) {
 		_ = json.Unmarshal(old, &restored)
 		c.cfg = restored
 		c.scanLocked()
+		c.quiz = oldQuiz
 	}
 	s := c.snapshotLocked()
 	c.mu.Unlock()

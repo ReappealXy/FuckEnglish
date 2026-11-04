@@ -34,6 +34,14 @@ Description: 在常规设置增加开机启动开关，调用 MyGo 系统登录�
 
 大白话：勾选并保存后，登录 Windows 就会自动运行单词胶囊；关闭开关后会移除启动项。
 
+## 7. 原位置覆盖更新
+
+Summary: `feat: update existing installation in place`
+
+Description: 安装器从旧版卸载记录读取自定义安装目录，更新时沿用该目录；稳定应用名称和登录启动标识，沿用现有设置文件及自定义词表路径。安装程序和免安装程序均移除 Preview 产品名称。
+
+大白话：新版安装器找到旧版本装在哪儿，就在原位置更新，设置和 Excel 文件夹继续用原来的。
+
 ## 3. 完成文件夹和外观设置
 
 Summary: `feat: configure wordbook folders and preserve island appearance`
@@ -49,3 +57,35 @@ Summary: `test: verify vocabulary workflows and package Windows app`
 Description: 添加真实词表解析、Excel 格式错误、共享字符串、分页边界、目录切换和保存失败回滚测试；保留悬浮计时及原主题测试。执行类型检查、Go 测试、go vet 和原生桌面界面验证，输出 Windows EXE、可选安装包、README、来源说明和免安装交付目录。具体实测范围见 VERIFICATION.md。
 
 大白话：检查词表能读、分页能用、设置能保存，再给你双击运行的程序。
+
+## 8. 为个人词表补齐干扰项字段
+
+Summary: `chore: extend personal wordbooks with distractor columns`
+
+Description: 原地更新 D:\Study\English\list 中 list1.xlsx、list2.xlsx、list3.xlsx，在原四列后追加中文干扰项1～3、英文干扰项1～3，新增内容留空。修改前备份原文件，逐单元格核对原有数据，并保留其余 XLSX 部件、样式和工作表属性。三份个人词表位于仓库外，不包含在 Git 提交中。
+
+大白话：三份表都加好了以后填错误选项的位置，原来的单词和释义没有动。
+
+## 9. 更新下载模板与填写说明
+
+Summary: `feat: add bilingual distractor columns to Excel template`
+
+Description: 软件导出的空白 Excel 模板从四列扩展到十列，新增中英文各三个干扰项；同步设置页字段展示、填写说明和 README，扩展模板结构检查。旧四列词表及新增空列的词表继续正常浏览。记录后续测试规则：使用每行自行填写的干扰项，缺少对应方向三个干扰项的词不能参与该方向测试；测试与顺序 / 乱序切换尚未实现。
+
+大白话：以后直接按新模板生成词表就行。中文错误选项和英文错误选项分开填，没填也不影响看单词。
+
+## 10. 双向单词小测
+
+Summary: `feat: add bilingual vocabulary quizzes`
+
+Description: 胶囊顶部新增浏览、英选中、中选英切换。读取每行自备的中英文干扰项，整份当前词表出题，每题四选一，题目及选项默认乱序。缺失、重复或与正确答案相同的干扰项仅使该词跳过对应方向小测。答题后锁定本题并立即显示对错与正确答案，点击下一题继续，末题查看本轮得分，支持重新测试与返回浏览。收起保留当前题目，切换词表按当前方向重新开始。题目令牌阻止迟到请求或重复点击跨题计分。
+
+大白话：现在可以选答案检查自己记没记住，选错会告诉你正确答案，测完看答对了多少个。错误选项只用你在 Excel 里准备的内容。
+
+## 11. 顺序与乱序浏览
+
+Summary: `feat: add persistent shuffled wordbook browsing`
+
+Description: 浏览底栏新增顺序 / 乱序切换。每份词表使用稳定的随机排列，翻页不重复洗牌，重启及切换词表继续沿用原排列；分别保存两种浏览顺序的页码。保留旧设置、词表路径和原顺序页码。修正五词分页底栏仍按四词计算的编号，并补充解析、题目资格、计分、题目随机性、分页稳定性和保存失败回滚检查。
+
+大白话：既能按 Excel 原顺序背，也能打乱背，来回翻页不会漏词或乱跳，两种模式各记各的位置。

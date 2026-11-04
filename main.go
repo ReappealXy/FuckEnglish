@@ -13,6 +13,7 @@ var appCore *Core
 
 func main() {
 	app := mygo.App
+	app.SetName("FuckEnglish")
 	core := &Core{}
 	appCore = core
 	mygo.Bind(&Library{core})

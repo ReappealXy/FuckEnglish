@@ -38,6 +38,23 @@ export interface LibraryState {
   total: number;
   focus: number;
   error: string;
+  browseOrder: string;
+  quiz: QuizState;
+}
+
+export interface QuizState {
+  direction: string;
+  token: string;
+  question: string;
+  options: string[];
+  index: number;
+  total: number;
+  skipped: number;
+  answered: boolean;
+  choice: number;
+  correct: number;
+  score: number;
+  completed: boolean;
 }
 
 export interface Settings {
@@ -57,13 +74,24 @@ export interface Word {
   english: string;
   phonetic: string;
   meaning: string;
+  chineseDistractors: string[];
+  englishDistractors: string[];
 }
 
 // ---- Services ----
 
 export const Library = {
+  answerQuiz(token: string, choice: number): Promise<LibraryState> {
+    return call("Library.AnswerQuiz", token, choice);
+  },
+  endQuiz(): Promise<LibraryState> {
+    return call("Library.EndQuiz");
+  },
   focus(index: number): Promise<LibraryState> {
     return call("Library.Focus", index);
+  },
+  nextQuiz(token: string): Promise<LibraryState> {
+    return call("Library.NextQuiz", token);
   },
   openFolder(): Promise<void> {
     return call("Library.OpenFolder");
@@ -84,11 +112,17 @@ export const Library = {
   select(name: string): Promise<LibraryState> {
     return call("Library.Select", name);
   },
+  setBrowseOrder(order: string): Promise<LibraryState> {
+    return call("Library.SetBrowseOrder", order);
+  },
   setFolder(folder: string): Promise<LibraryState> {
     return call("Library.SetFolder", folder);
   },
   snapshot(): Promise<LibraryState> {
     return call("Library.Snapshot");
+  },
+  startQuiz(direction: string): Promise<LibraryState> {
+    return call("Library.StartQuiz", direction);
   },
 } as const;
 

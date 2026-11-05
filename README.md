@@ -86,6 +86,8 @@ bun run build
 
 构建产物位于 `build/windows-amd64/`。前端为 Preact / TypeScript，桌面宿主为 Go / MyGo，Excel 读取使用 Go 标准库，不需要安装 Excel 或 Python。
 
+完整免安装包使用 `scripts/package-windows-portable.ps1`，指定一个尚不存在的输出目录；可通过 `-WordbookDirectory` 指定要随包交付的 XLSX 文件夹。脚本保留 EXE 所需资源、许可与说明，生成免安装目录、ZIP、安装器副本和 SHA256 校验清单，不运行安装器或修改已有交付目录。随包词表不会覆盖用户已有设置中的词表路径。
+
 ## 来源与许可
 
 本项目由已有的 Clash Traffic 本地灵动岛改造版拆分而来，保留其 Go / MyGo 宿主和 Preact 胶囊实现，词表功能独立实现。

@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"fuckenglish/internal/wordbook"
 )
@@ -132,6 +133,121 @@ func TestQuizWrongAnswersEmptyAndReset(t *testing.T) {
 	s, _ = l.EndQuiz()
 	if s.Quiz.Direction != "" {
 		t.Fatal("did not return to browsing")
+	}
+}
+
+func TestQuizAutoAdvanceCorrectOnlyAndFinishManually(t *testing.T) {
+	for _, direction := range []string{englishToChinese, chineseToEnglish} {
+		t.Run(direction, func(t *testing.T) {
+			c := quizCore(t)
+			c.words[c.cfg.Selected][3].EnglishDistractors = []string{"quiet", "tired", "slow"}
+			l := &Library{c}
+			s, _ := l.StartQuiz(direction)
+			if s.Quiz.Total != 3 {
+				t.Fatalf("need three questions: %+v", s.Quiz)
+			}
+			correct := c.quiz.questions[0].correct
+			answered, err := l.AnswerQuiz(s.Quiz.Token, correct)
+			if err != nil || !answered.Quiz.Answered || answered.Quiz.Index != 0 {
+				t.Fatalf("correct feedback missing: %+v %v", answered.Quiz, err)
+			}
+			// Repeated delivery must neither add points nor schedule another skip.
+			_, _ = l.AnswerQuiz(s.Quiz.Token, correct)
+			deadline := time.Now().Add(3 * time.Second)
+			for l.Snapshot().Quiz.Index == 0 && time.Now().Before(deadline) {
+				time.Sleep(10 * time.Millisecond)
+			}
+			s = l.Snapshot()
+			if s.Quiz.Index != 1 || s.Quiz.Answered || s.Quiz.Score != 1 {
+				t.Fatalf("correct answer did not advance once: %+v", s.Quiz)
+			}
+			c.mu.Lock()
+			wrong := (c.quiz.questions[1].correct + 1) % 4
+			c.mu.Unlock()
+			s, _ = l.AnswerQuiz(s.Quiz.Token, wrong)
+			time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
+			if got := l.Snapshot().Quiz; got.Index != 1 || !got.Answered || got.Score != 1 {
+				t.Fatalf("wrong answer advanced automatically: %+v", got)
+			}
+			s, _ = l.NextQuiz(s.Quiz.Token)
+			c.mu.Lock()
+			correct = c.quiz.questions[2].correct
+			c.mu.Unlock()
+			s, _ = l.AnswerQuiz(s.Quiz.Token, correct)
+			time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
+			if got := l.Snapshot().Quiz; got.Index != 2 || got.Completed || !got.Answered {
+				t.Fatalf("last question completed without confirmation: %+v", got)
+			}
+			s, err = l.NextQuiz(s.Quiz.Token)
+			if err != nil || !s.Quiz.Completed || s.Quiz.Score != 2 {
+				t.Fatalf("manual finish failed: %+v %v", s.Quiz, err)
+			}
+		})
+	}
+}
+
+func TestQuizPendingAutoAdvanceCannotChangeNewSession(t *testing.T) {
+	for _, reset := range []string{"restart", "direction", "book", "refresh", "browse"} {
+		t.Run(reset, func(t *testing.T) {
+			c := quizCore(t)
+			l := &Library{c}
+			s, _ := l.StartQuiz(englishToChinese)
+			_, _ = l.AnswerQuiz(s.Quiz.Token, c.quiz.questions[0].correct)
+			switch reset {
+			case "restart":
+				_, _ = l.StartQuiz(englishToChinese)
+			case "direction":
+				_, _ = l.StartQuiz(chineseToEnglish)
+			case "book":
+				_, _ = l.Select("list2.xlsx")
+			case "refresh":
+				_, _ = l.Refresh()
+			case "browse":
+				_, _ = l.EndQuiz()
+			}
+			before := l.Snapshot().Quiz
+			c.autoAdvanceQuiz(s.Quiz.Token)
+			if got := l.Snapshot().Quiz; !reflect.DeepEqual(got, before) {
+				t.Fatalf("pending advance changed %s: %+v", reset, got)
+			}
+		})
+	}
+}
+
+func TestQuizFinalWrongAndSingleQuestionWaitForFinish(t *testing.T) {
+	for _, correctAnswer := range []bool{false, true} {
+		c := quizCore(t)
+		c.words[c.cfg.Selected] = c.words[c.cfg.Selected][:1]
+		l := &Library{c}
+		s, _ := l.StartQuiz(englishToChinese)
+		choice := c.quiz.questions[0].correct
+		if !correctAnswer {
+			choice = (choice + 1) % 4
+		}
+		s, _ = l.AnswerQuiz(s.Quiz.Token, choice)
+		c.autoAdvanceQuiz(s.Quiz.Token)
+		if got := l.Snapshot().Quiz; got.Completed || got.Index != 0 || !got.Answered {
+			t.Fatalf("single/final question completed automatically: %+v", got)
+		}
+		finished, err := l.NextQuiz(s.Quiz.Token)
+		if err != nil || !finished.Quiz.Completed {
+			t.Fatalf("single/final question could not finish: %+v %v", finished.Quiz, err)
+		}
+	}
+}
+
+func TestQuizManualNextInvalidatesPendingAutoAdvance(t *testing.T) {
+	c := quizCore(t)
+	l := &Library{c}
+	s, _ := l.StartQuiz(englishToChinese)
+	_, _ = l.AnswerQuiz(s.Quiz.Token, c.quiz.questions[0].correct)
+	next, err := l.NextQuiz(s.Quiz.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.autoAdvanceQuiz(s.Quiz.Token)
+	if got := l.Snapshot().Quiz; !reflect.DeepEqual(got, next.Quiz) {
+		t.Fatalf("pending timer skipped the new question: %+v", got)
 	}
 }
 

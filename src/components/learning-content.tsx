@@ -21,6 +21,8 @@ export function LearningContent(props: Props) {
   const error = props.error || library?.error;
   const quiz = library?.quiz;
   const testing = !!quiz?.direction;
+  const lastQuestion = !!quiz && quiz.index + 1 === quiz.total;
+  const autoAdvancing = !!quiz?.answered && quiz.choice === quiz.correct && !lastQuestion;
   const quizStatus = !quiz ? "" : quiz.completed ? "本轮小测已完成" : quiz.answered
     ? quiz.choice === quiz.correct ? "答对了" : study ? `答错了 · 正确答案：${quiz.options[quiz.correct]}` : `答错了 · 正确答案 ${String.fromCharCode(65 + quiz.correct)}`
     : quiz.total ? `题目与选项已乱序${quiz.skipped ? ` · 跳过 ${quiz.skipped} 词` : ""}` : `跳过 ${quiz.skipped} 词`;
@@ -35,7 +37,7 @@ export function LearningContent(props: Props) {
         return <button type="button" key={`${quiz.token}-${index}`} class={`quiz-choice${correct ? " correct" : ""}${wrong ? " wrong" : ""}`} disabled={busy || quiz.answered} aria-label={`${study ? "" : `${String.fromCharCode(65 + index)}. `}${option}${correct ? "，正确答案" : wrong ? "，回答错误" : ""}`} onClick={() => props.onAnswer?.(quiz.token, index)}>{!study && <span class="quiz-letter">{String.fromCharCode(65 + index)}</span>}<span class="quiz-choice-text" tabIndex={quiz.answered ? 0 : -1}>{option}</span>{(correct || wrong) && <span class="quiz-mark">{correct ? "正确" : "选错"}</span>}</button>;
       })}</div></>}
     </div>
-    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || quizStatus}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" disabled={busy || !quiz.answered} onClick={() => props.onNext?.(quiz.token)}>{quiz.index + 1 === quiz.total ? "查看结果" : "下一题"}</button></div>}</footer>
+    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || quizStatus}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" disabled={busy || !quiz.answered || autoAdvancing} onClick={() => props.onNext?.(quiz.token)}>{lastQuestion ? "完成" : autoAdvancing ? "自动下一题…" : "下一题"}</button></div>}</footer>
   </>;
 
   return <>

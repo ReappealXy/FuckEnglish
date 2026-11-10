@@ -4,12 +4,15 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strings"
+	"time"
 
 	"fuckenglish/internal/wordbook"
 )
 
 const englishToChinese = "english-chinese"
 const chineseToEnglish = "chinese-english"
+
+const quizAutoAdvanceDelay = 450 * time.Millisecond
 
 type QuizState struct {
 	Direction string   `json:"direction"`
@@ -138,7 +141,8 @@ func (l *Library) EndQuiz() (LibraryState, error) {
 }
 
 func (l *Library) AnswerQuiz(token string, choice int) (LibraryState, error) {
-	return l.core.quizChange(func() error {
+	autoAdvance := false
+	s, err := l.core.quizChange(func() error {
 		s := l.core.quizSnapshotLocked()
 		if token == "" || s.Token != token || choice < 0 || choice >= len(s.Options) {
 			return fmt.Errorf("题目已更新，请重新选择")
@@ -150,20 +154,38 @@ func (l *Library) AnswerQuiz(token string, choice int) (LibraryState, error) {
 		q.choice, q.answered = choice, true
 		if choice == q.questions[q.index].correct {
 			q.score++
+			autoAdvance = q.index+1 < len(q.questions)
 		}
 		return nil
+	})
+	if err == nil && autoAdvance {
+		// One backend timer serves every view. The token makes a pending
+		// advance harmless after a restart, book switch, refresh or manual next.
+		time.AfterFunc(quizAutoAdvanceDelay, func() { l.core.autoAdvanceQuiz(token) })
+	}
+	return s, err
+}
+
+func (c *Core) autoAdvanceQuiz(token string) {
+	_, _ = c.quizChange(func() error {
+		s := c.quizSnapshotLocked()
+		if s.Token != token || !s.Answered || s.Choice != s.Correct || s.Index+1 >= s.Total {
+			return fmt.Errorf("题目已更新")
+		}
+		return c.nextQuizLocked(token)
 	})
 }
 
 func (l *Library) NextQuiz(token string) (LibraryState, error) {
-	return l.core.quizChange(func() error {
-		s := l.core.quizSnapshotLocked()
-		if token == "" || s.Token != token || !s.Answered {
-			return fmt.Errorf("请先回答当前题目")
-		}
-		q := &l.core.quiz
-		q.index++
-		q.choice, q.answered = -1, false
-		return nil
-	})
+	return l.core.quizChange(func() error { return l.core.nextQuizLocked(token) })
+}
+
+func (c *Core) nextQuizLocked(token string) error {
+	s := c.quizSnapshotLocked()
+	if token == "" || s.Token != token || !s.Answered {
+		return fmt.Errorf("请先回答当前题目")
+	}
+	c.quiz.index++
+	c.quiz.choice, c.quiz.answered = -1, false
+	return nil
 }

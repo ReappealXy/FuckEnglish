@@ -63,7 +63,8 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 				return
 			case <-ticker.C:
 				mygo.RunOnMain(func() {
-					if w.IsDestroyed() || !islandReady || !core.settings().IslandVisible {
+					if w.IsDestroyed() || !islandReady || studyActive || !core.settings().IslandVisible {
+						inside = false
 						islandPointerInside = false
 						updateIslandPagingShortcuts()
 						return

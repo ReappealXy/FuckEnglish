@@ -37,6 +37,8 @@ foreach ($book in $wordbooks) { Copy-Item -LiteralPath $book.FullName -Destinati
 foreach ($item in @("CHANGES.md", "VERIFICATION.md")) {
   Copy-Item -LiteralPath (Join-Path $root "docs\$item") -Destination (Join-Path $portable "docs")
 }
+Copy-Item -LiteralPath (Join-Path $root "docs\images") -Destination (Join-Path $portable "docs") -Recurse
+Copy-Item -LiteralPath (Join-Path $root "releases") -Destination $portable -Recurse
 
 $instructions = @"
 FuckEnglish $version · Windows x64 免安装版
@@ -46,6 +48,8 @@ FuckEnglish $version · Windows x64 免安装版
 如需使用本包词表，在设置的“词表文件夹”页选择本包 words 文件夹，点击“应用文件夹”。修改 Excel 后点击“刷新词表”。
 
 顶部选择“浏览 / 英选中 / 中选英”。浏览底部可以切换顺序 / 乱序，每页 5 词，两种顺序分别记住页码。
+浏览时将鼠标停留在展开的胶囊内，可按键盘 ← 上一页、→ 下一页。移开或收起后停用，小测不使用这组翻页键。
+操作词表或模式下拉框时，方向键保留给选项；点击词表正文后可继续快捷翻页。
 小测使用当前整份词表，每题四选一，题目与选项随机排序。选择后立即显示对错，点击下一题，结束查看本轮答对数。
 小测只读取每个词自己填写的三个中文或英文干扰项。缺失、重复或与正确答案相同的选项会使该词跳过对应方向小测，仍能浏览。
 收起后保留当前题目；切换词表重新出题，刷新结束当前轮；退出软件后不保留本轮成绩。

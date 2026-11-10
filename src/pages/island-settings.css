@@ -1,9 +1,10 @@
 /* BrimDeck SettingsPalette.cs and SettingsWindow.cs, scoped to the island page. */
-.deck-settings { --deck-surface: #fcfcfd; --deck-sidebar: #f3f3f5; --deck-text: #202027; --deck-secondary: #62626f; --deck-border: #e0e0e6; --deck-inset: #eff0f4; --deck-selected: #fff; --deck-accent: #347bdf; display: grid; grid-template-columns: 154px minmax(0, 1fr); min-height: 550px; max-width: 1100px; background: var(--deck-surface); color: var(--deck-text); border: 1px solid var(--deck-border); border-radius: 10px; overflow: hidden; font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+.deck-palette { --deck-surface: #fcfcfd; --deck-sidebar: #f3f3f5; --deck-text: #202027; --deck-secondary: #62626f; --deck-border: #e0e0e6; --deck-inset: #eff0f4; --deck-selected: #fff; --deck-accent: #347bdf; color: var(--deck-text); font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+.deck-palette button { font: inherit; cursor: pointer; }
+.deck-palette button:disabled { opacity: .5; cursor: default; }
+.deck-settings { display: grid; grid-template-columns: 154px minmax(0, 1fr); min-height: 550px; max-width: 1100px; background: var(--deck-surface); border: 1px solid var(--deck-border); border-radius: 10px; overflow: hidden; }
 .deck-settings-nav { padding: 25px 10px; background: var(--deck-sidebar); }
 .deck-settings-nav h2 { margin: 0 10px 24px; font-size: 18px; font-weight: 600; }
-.deck-settings button { font: inherit; cursor: pointer; }
-.deck-settings button:disabled { opacity: .5; cursor: default; }
 .deck-settings-nav button { display: block; width: 100%; padding: 10px 12px; margin-bottom: 3px; border: 0; border-radius: 6px; color: var(--deck-secondary); background: transparent; text-align: left; font-size: 12px; }
 .deck-settings-nav button:hover { background: var(--deck-inset); }
 .deck-settings-nav button.selected { color: var(--deck-text); background: var(--deck-selected); font-weight: 600; }
@@ -53,6 +54,6 @@
 .word-template-columns span:nth-child(4n), .word-template-columns span:last-child { border-right: 0; }
 .word-template-columns span:nth-child(n+9) { border-bottom: 0; }
 .word-template-save { margin-top: 16px; padding: 7px 12px; color: var(--deck-text); background: var(--deck-selected); border: 1px solid var(--deck-border); border-radius: 5px; font-size: 12px; }
-@media (prefers-color-scheme: dark) { .deck-settings { --deck-surface: #141416; --deck-sidebar: #0d0d0f; --deck-text: #f1f1f4; --deck-secondary: #a5a5af; --deck-border: #2d2d33; --deck-inset: #25252b; --deck-selected: #27272d; --deck-accent: #348aeb; } }
+@media (prefers-color-scheme: dark) { .deck-palette { --deck-surface: #141416; --deck-sidebar: #0d0d0f; --deck-text: #f1f1f4; --deck-secondary: #a5a5af; --deck-border: #2d2d33; --deck-inset: #25252b; --deck-selected: #27272d; --deck-accent: #348aeb; } }
 @media (max-width: 1050px) { .deck-settings { grid-template-columns: 130px minmax(0, 1fr); }.deck-settings-content { padding-inline: 20px; }.deck-theme-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }.deck-setting-row { gap: 10px; }.deck-slider input { width: 95px; } }
 @media (prefers-reduced-motion: reduce) { .deck-settings *, .deck-settings *::after { transition: none !important; } }

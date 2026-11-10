@@ -142,6 +142,12 @@ export const Island = {
   openSettings(): Promise<void> {
     return call("Island.OpenSettings");
   },
+  openStudy(): Promise<void> {
+    return call("Island.OpenStudy");
+  },
+  returnToCapsule(): Promise<void> {
+    return call("Island.ReturnToCapsule");
+  },
   setExpanded(expanded: boolean): Promise<void> {
     return call("Island.SetExpanded", expanded);
   },

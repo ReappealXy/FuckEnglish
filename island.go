@@ -101,7 +101,7 @@ var islandPagingActive bool
 var islandPagingRegistered bool
 
 func updateIslandPagingShortcuts() {
-	active := islandExpanded && islandPointerInside && islandPagingAllowed
+	active := !studyActive && islandExpanded && islandPointerInside && islandPagingAllowed
 	if active == islandPagingActive {
 		return
 	}
@@ -126,7 +126,7 @@ func updateIslandPagingShortcuts() {
 		direction int
 	}{{"Left", -1}, {"Right", 1}} {
 		if err := mygo.GlobalShortcut.Register(key.name, func() {
-			if islandExpanded && islandPointerInside && islandPagingAllowed {
+			if !studyActive && islandExpanded && islandPointerInside && islandPagingAllowed {
 				_ = IslandPageEvent.Broadcast(key.direction)
 			}
 		}); err != nil {
@@ -188,8 +188,9 @@ func islandHostBounds(area mygo.Rectangle, s Settings) mygo.Rectangle {
 
 func applyIsland(core *Core) {
 	mygo.RunOnMain(func() {
-		if !core.settings().IslandVisible {
+		if studyActive || !core.settings().IslandVisible {
 			islandExpanded = false
+			islandPointerInside, islandPagingAllowed = false, false
 			updateIslandPagingShortcuts()
 			islandEscapeKey(false)
 			if islandWin != nil {
@@ -229,7 +230,7 @@ func applyIsland(core *Core) {
 		})
 		w.OnReadyToShow(func() {
 			islandReady = true
-			if core.settings().IslandVisible {
+			if !studyActive && core.settings().IslandVisible {
 				w.ShowInactive()
 			}
 		})
@@ -264,11 +265,11 @@ func setIslandExpanded(core *Core, expanded bool) {
 			return
 		}
 		s := core.settings().Settings
-		expanded = expanded && s.IslandVisible
+		expanded = expanded && !studyActive && s.IslandVisible
 		islandExpanded = expanded
 		updateIslandPagingShortcuts()
 		islandEscapeKey(expanded)
-		if islandReady && core.settings().IslandVisible {
+		if islandReady && !studyActive && core.settings().IslandVisible {
 			islandWin.ShowInactive()
 		}
 		// The requesting view already owns the animation state. Do not echo

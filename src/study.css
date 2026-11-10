@@ -1,0 +1,69 @@
+.study-window { height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--deck-surface); color: var(--deck-text); }
+.study-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 18px; }
+.study-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.study-selectors { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 118px auto; align-items: center; gap: 8px; }
+.study-selectors select { min-width: 0; width: 100%; height: 34px; padding: 0 9px; border: 1px solid var(--deck-border); border-radius: 5px; background: var(--deck-selected); color: var(--deck-text); font: inherit; }
+.study-word-count { color: var(--deck-secondary); font-size: 12px; white-space: nowrap; }
+.study-actions { display: flex; flex: 0 0 auto; gap: 7px; }
+.study-actions button { min-height: 34px; padding: 0 11px; border: 1px solid var(--deck-border); border-radius: 5px; background: var(--deck-selected); color: var(--deck-text); font-size: 12px; white-space: nowrap; }
+.study-actions button:hover:not(:disabled) { background: var(--deck-inset); }
+.study-actions .study-return { background: var(--deck-accent); border-color: transparent; color: #fff; }
+.study-actions .study-return:hover:not(:disabled) { background: color-mix(in srgb, var(--deck-accent) 88%, #000); }
+.study-panel { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; border: 1px solid var(--deck-border); border-radius: 8px; background: var(--deck-surface); }
+.study-content-stage { --island-text: var(--deck-text); --island-secondary: var(--deck-secondary); --island-accent: var(--deck-accent); --island-divider: var(--deck-border); --island-fill: var(--deck-inset); --island-hover: color-mix(in srgb, var(--deck-accent) 9%, var(--deck-surface)); --island-selected: var(--deck-selected); --island-surface: var(--deck-surface); --island-good: #218443; --island-up: #c7433a; flex: 1; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 14px 18px 9px; color: var(--deck-text); color-scheme: light dark; font: 13px/1.45 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+.study-content-stage .vocabulary-page { padding: 0; }
+.study-content-stage .vocabulary-head, .study-content-stage .vocabulary-row { grid-template-columns: minmax(105px, .95fr) minmax(105px, .9fr) minmax(0, 2.2fr); column-gap: 14px; }
+.study-content-stage .vocabulary-head { flex-basis: 30px; font-size: 12px; }
+.study-content-stage .vocabulary-rows { grid-template-rows: repeat(5, minmax(0, 1fr)); }
+.study-content-stage .vocabulary-row { font-size: 14px; padding: 3px 0; }
+.study-content-stage .word-focus { padding: 7px 0; font-size: 15px; }
+.study-content-stage .word-phonetic { font-size: 12px; }
+.study-content-stage .word-meaning { max-height: 100%; line-height: 1.45; font-size: 13px; white-space: pre-wrap; }
+.study-content-stage .vocabulary-empty { gap: 14px; font-size: 14px; }
+.study-content-stage .vocabulary-empty button { padding: 8px 13px; border: 1px solid var(--deck-border); border-radius: 5px; background: var(--deck-selected); color: var(--deck-text); }
+.study-content-stage .island-statusbar { flex: 0 0 auto; min-height: 42px; padding: 8px 0 0; gap: 12px; color: var(--deck-secondary); font-size: 12px; white-space: normal; }
+.study-content-stage .browse-status { gap: 12px; }
+.study-content-stage .browse-order { padding: 3px; gap: 2px; background: var(--deck-inset); }
+.study-content-stage .browse-order button { min-width: 44px; padding: 5px 9px; border-radius: 4px; color: var(--deck-secondary); font-size: 12px; }
+.study-content-stage .browse-order button[aria-pressed="true"] { background: var(--deck-selected); color: var(--deck-text); }
+.study-content-stage .word-pagination { gap: 8px; }
+.study-content-stage .word-pagination > span { min-width: 48px; }
+.study-content-stage .word-pagination button { padding: 6px 9px; border: 1px solid var(--deck-border); border-radius: 5px; background: var(--deck-selected); color: var(--deck-text); font-size: 12px; }
+.study-content-stage .word-pagination button:hover:not(:disabled) { background: var(--deck-inset); }
+.study-content-stage .quiz-page { gap: 14px; padding: 4px 0 10px; }
+.study-content-stage .quiz-prompt { max-height: 32%; font-size: 25px; line-height: 1.4; }
+.study-content-stage .quiz-options { gap: 10px; }
+.study-content-stage .quiz-choice { gap: 12px; padding: 12px 14px; border-color: var(--deck-border); border-radius: 7px; background: var(--deck-selected); color: var(--deck-text); font-size: 15px; }
+.study-content-stage .quiz-choice:hover:not(:disabled) { border-color: var(--deck-accent); background: var(--deck-inset); }
+.study-content-stage .quiz-letter { flex-basis: 18px; font-size: 13px; }
+.study-content-stage .quiz-choice-text { line-height: 1.5; }
+.study-content-stage .quiz-mark { font-size: 11px; }
+.study-content-stage .quiz-choice.correct { border-color: var(--island-good); background: color-mix(in srgb, var(--island-good) 12%, var(--deck-selected)); }
+.study-content-stage .quiz-choice.wrong { border-color: var(--island-up); background: color-mix(in srgb, var(--island-up) 12%, var(--deck-selected)); }
+.study-content-stage .quiz-message { gap: 12px; font-size: 14px; }
+.study-content-stage .quiz-message strong { font-size: 22px; }
+.study-content-stage .quiz-actions { flex-wrap: wrap; justify-content: center; gap: 8px; }
+.study-content-stage .quiz-actions button { padding: 8px 12px; border: 1px solid var(--deck-border); border-radius: 5px; background: var(--deck-selected); color: var(--deck-text); }
+.study-content-stage .quiz-footer .island-status { line-height: 1.4; }
+
+@media (max-width: 700px) {
+  .study-main { padding: 12px 14px 14px; gap: 9px; }
+  .study-toolbar { gap: 8px; }
+  .study-selectors { grid-template-columns: minmax(0, 1fr) 100px auto; gap: 6px; }
+  .study-selectors select { padding-inline: 6px; font-size: 11px; }
+  .study-word-count { font-size: 10px; }
+  .study-actions { gap: 5px; }
+  .study-actions button { padding-inline: 8px; font-size: 11px; }
+  .study-content-stage { padding: 11px 12px 8px; }
+  .study-content-stage .vocabulary-head, .study-content-stage .vocabulary-row { grid-template-columns: minmax(80px, .9fr) minmax(75px, .8fr) minmax(0, 2fr); column-gap: 8px; }
+  .study-content-stage .vocabulary-row { font-size: 12px; }
+  .study-content-stage .word-focus { font-size: 13px; }
+  .study-content-stage .word-phonetic { font-size: 10px; }
+  .study-content-stage .word-meaning { font-size: 11px; }
+  .study-content-stage .island-statusbar { flex-wrap: wrap; min-height: 54px; row-gap: 6px; }
+  .study-content-stage .browse-status { flex: 1 1 100%; justify-content: space-between; }
+  .study-content-stage .word-pagination { margin-left: auto; }
+  .study-content-stage .quiz-page { gap: 8px; }
+  .study-content-stage .quiz-prompt { font-size: 20px; }
+  .study-content-stage .quiz-choice { gap: 7px; padding: 8px; font-size: 12px; }
+}

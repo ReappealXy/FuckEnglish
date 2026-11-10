@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { currentWindow } from "mygo-runtime";
+import { WindowTitlebar } from "./components/window-titlebar";
 import { events, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { IslandSurface } from "./components/island-surface";
 import { islandTheme, islandThemes } from "./lib/island-theme";
@@ -37,8 +37,8 @@ export function App() {
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
   const save = () => run(async () => { if (!form) return; const s = await Preferences.save(form); savedRef.current = s; setSaved(s); setForm(s); }, "设置已保存");
   return <div class="app-shell">
-    <header class="app-titlebar"><strong>FuckEnglish</strong><span>摸鱼背单词</span><div class="window-actions"><button aria-label="最小化" onClick={() => void currentWindow.minimize()}>−</button><button aria-label="关闭窗口并保留胶囊" onClick={() => void currentWindow.close()}>×</button></div></header>
-    <main class="app-main"><div class="deck-settings">
+    <WindowTitlebar subtitle="摸鱼背单词" />
+    <main class="app-main"><div class="deck-settings deck-palette">
       <nav class="deck-settings-nav" aria-label="软件设置"><h2>单词胶囊</h2>{tabs.map(label => <button type="button" aria-current={tab === label ? "page" : undefined} class={tab === label ? "selected" : ""} onClick={() => { setTab(label); setExpanded(label !== "收起样式"); }}>{label}</button>)}<p class="app-version">FuckEnglish 0.1.3<br/>本地词表 · 随手翻阅</p></nav>
       <div class="deck-settings-content">
         <div class="deck-preview-heading"><span>实时词表预览</span><div><button type="button" class={!expanded ? "selected" : ""} onClick={() => setExpanded(false)}>收起</button><button type="button" class={expanded ? "selected" : ""} onClick={() => setExpanded(true)}>展开</button></div></div>

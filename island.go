@@ -58,12 +58,19 @@ func (r IslandHitRegion) contains(x, y float64) bool {
 var IslandWindowEvent = mygo.NewEvent[IslandWindowState]("island-window")
 var IslandDismissEvent = mygo.NewEvent[bool]("island-dismiss")
 var IslandPointerEvent = mygo.NewEvent[bool]("island-pointer")
+var IslandPageEvent = mygo.NewEvent[int]("island-page")
 var SettingsEvent = mygo.NewEvent[Settings]("settings")
 
 type Island struct{ core *Core }
 
 func (i *Island) OpenMain()                 { mygo.RunOnMain(showMainWindow) }
 func (i *Island) SetExpanded(expanded bool) { setIslandExpanded(i.core, expanded) }
+func (i *Island) SetPagingShortcuts(enabled bool) {
+	mygo.RunOnMain(func() {
+		islandPagingAllowed = enabled
+		updateIslandPagingShortcuts()
+	})
+}
 func (i *Island) SetHitRegion(region IslandHitRegion) {
 	if !region.valid() {
 		return
@@ -88,6 +95,51 @@ var islandExpanded bool
 var mainWindowURL = "/"
 var islandEscape bool
 var islandHitRegion IslandHitRegion
+var islandPointerInside bool
+var islandPagingAllowed bool
+var islandPagingActive bool
+var islandPagingRegistered bool
+
+func updateIslandPagingShortcuts() {
+	active := islandExpanded && islandPointerInside && islandPagingAllowed
+	if active == islandPagingActive {
+		return
+	}
+	islandPagingActive = active
+	if !active {
+		if islandPagingRegistered {
+			mygo.GlobalShortcut.Unregister("Left")
+			mygo.GlobalShortcut.Unregister("Right")
+			islandPagingRegistered = false
+		}
+		return
+	}
+	// Hovering does not activate the overlay, so DOM keydown alone cannot
+	// receive these keys. Own them only while the pointer is over the open
+	// browsing surface; native controls and quizzes keep their normal keys.
+	if mygo.GlobalShortcut.IsRegistered("Left") || mygo.GlobalShortcut.IsRegistered("Right") {
+		return
+	}
+	registered := []string{}
+	for _, key := range []struct {
+		name      string
+		direction int
+	}{{"Left", -1}, {"Right", 1}} {
+		if err := mygo.GlobalShortcut.Register(key.name, func() {
+			if islandExpanded && islandPointerInside && islandPagingAllowed {
+				_ = IslandPageEvent.Broadcast(key.direction)
+			}
+		}); err != nil {
+			for _, name := range registered {
+				mygo.GlobalShortcut.Unregister(name)
+			}
+			log.Println("island paging shortcut:", err)
+			return
+		}
+		registered = append(registered, key.name)
+	}
+	islandPagingRegistered = true
+}
 
 func islandEscapeKey(expanded bool) {
 	if expanded && !islandEscape && !mygo.GlobalShortcut.IsRegistered("Escape") {
@@ -138,6 +190,7 @@ func applyIsland(core *Core) {
 	mygo.RunOnMain(func() {
 		if !core.settings().IslandVisible {
 			islandExpanded = false
+			updateIslandPagingShortcuts()
 			islandEscapeKey(false)
 			if islandWin != nil {
 				islandWin.Hide()
@@ -164,6 +217,8 @@ func applyIsland(core *Core) {
 		}
 		islandWin, islandReady = w, false
 		islandHitRegion = IslandHitRegion{}
+		islandPointerInside, islandPagingAllowed = false, false
+		updateIslandPagingShortcuts()
 		stopPointer := startIslandPointer(w, core)
 		w.OnClose(func(e *mygo.CloseEvent) {
 			if applicationQuitting {
@@ -181,6 +236,8 @@ func applyIsland(core *Core) {
 		w.OnClosed(func() {
 			stopPointer()
 			islandWin, islandReady, islandExpanded = nil, false, false
+			islandPointerInside, islandPagingAllowed = false, false
+			updateIslandPagingShortcuts()
 			islandEscapeKey(false)
 		})
 	})
@@ -209,6 +266,7 @@ func setIslandExpanded(core *Core, expanded bool) {
 		s := core.settings().Settings
 		expanded = expanded && s.IslandVisible
 		islandExpanded = expanded
+		updateIslandPagingShortcuts()
 		islandEscapeKey(expanded)
 		if islandReady && core.settings().IslandVisible {
 			islandWin.ShowInactive()

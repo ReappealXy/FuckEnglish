@@ -64,6 +64,8 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 			case <-ticker.C:
 				mygo.RunOnMain(func() {
 					if w.IsDestroyed() || !islandReady || !core.settings().IslandVisible {
+						islandPointerInside = false
+						updateIslandPagingShortcuts()
 						return
 					}
 					var point [2]int32
@@ -78,6 +80,8 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 					x, y := float64(point[0])*96/float64(dpi), float64(point[1])*96/float64(dpi)
 					r := islandHitRegion
 					hit := r.valid() && r.contains(x, y)
+					islandPointerInside = hit
+					updateIslandPagingShortcuts()
 					if ignoring == hit {
 						ignoring = !hit
 						w.SetIgnoreMouseEvents(ignoring)

@@ -69,7 +69,7 @@ export function IslandSurface(props: Props) {
         </div>
         <footer class="island-statusbar vocabulary-footer">
           <div class="browse-status"><span class={`island-status ${words.length ? "connected" : ""}`} aria-live="polite"><i />{error || (words.length ? `第 ${(library?.page ?? 0)*5+1}–${(library?.page ?? 0)*5+words.length} 词` : "等待词表")}</span><div class="browse-order" role="group" aria-label="浏览顺序">{([['sequential','顺序'],['random','乱序']] as const).map(([order,label]) => <button type="button" aria-pressed={(library?.browseOrder ?? "sequential") === order} disabled={busy || !library?.selected} onClick={() => props.onOrder?.(order)}>{label}</button>)}</div></div>
-          <div class="word-pagination"><button type="button" disabled={busy || !library || library.page <= 0} onClick={() => props.onPage?.((library?.page ?? 0)-1)}>上一页</button><span>{library?.pages ? `${library.page+1} / ${library.pages}` : "0 / 0"}</span><button type="button" disabled={busy || !library || library.page+1 >= library.pages} onClick={() => props.onPage?.((library?.page ?? 0)+1)}>下一页</button></div>
+          <div class="word-pagination"><button type="button" title="上一页（←）" aria-keyshortcuts="ArrowLeft" disabled={busy || !library || library.page <= 0} onClick={() => props.onPage?.((library?.page ?? 0)-1)}>上一页</button><span>{library?.pages ? `${library.page+1} / ${library.pages}` : "0 / 0"}</span><button type="button" title="下一页（→）" aria-keyshortcuts="ArrowRight" disabled={busy || !library || library.page+1 >= library.pages} onClick={() => props.onPage?.((library?.page ?? 0)+1)}>下一页</button></div>
         </footer>
         </>}
       </section>

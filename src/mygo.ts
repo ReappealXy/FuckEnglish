@@ -148,6 +148,9 @@ export const Island = {
   setHitRegion(region: IslandHitRegion): Promise<void> {
     return call("Island.SetHitRegion", region);
   },
+  setPagingShortcuts(enabled: boolean): Promise<void> {
+    return call("Island.SetPagingShortcuts", enabled);
+  },
 } as const;
 
 // ---- Events ----
@@ -157,6 +160,7 @@ export const events = {
   islandWindow: event<IslandWindowState>("island-window"),
   islandDismiss: event<boolean>("island-dismiss"),
   islandPointer: event<boolean>("island-pointer"),
+  islandPage: event<number>("island-page"),
   settings: event<Settings>("settings"),
   islandNavigate: event<string>("island-navigate"),
   library: event<LibraryState>("library"),

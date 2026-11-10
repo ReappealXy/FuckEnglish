@@ -12,7 +12,7 @@ import (
 func quizCore(t *testing.T) *Core {
 	c := testCore(t)
 	c.words[c.cfg.Selected] = []wordbook.Word{
-		{English: "aircraft", Meaning: "n. 航空器；飞行器", ChineseDistractors: []string{"n. 机场", "n. 飞行员", "n. 跑道"}, EnglishDistractors: []string{"airport", "pilot", "runway"}},
+		{English: "aircraft", Phonetic: "[ˈeəkrɑːft]", Meaning: "n. 航空器；飞行器", ChineseDistractors: []string{"n. 机场", "n. 飞行员", "n. 跑道"}, EnglishDistractors: []string{"airport", "pilot", "runway"}},
 		{English: "aisle", Meaning: "n. 过道", ChineseDistractors: []string{"n. 岛屿", "n. 出口", "n. 座位"}, EnglishDistractors: []string{"island", "exit", "seat"}},
 		{English: "old", Meaning: "旧的"},
 		{English: "alert", Meaning: "警觉的", ChineseDistractors: []string{"安静的", "迟钝的", "疲倦的"}, EnglishDistractors: []string{"ALERT", "tired", "quiet"}},
@@ -49,6 +49,12 @@ func TestQuizDirectionsAndEligibility(t *testing.T) {
 				}
 			}
 			_, choices, ok := quizChoices(word, direction)
+			if direction == englishToChinese && q.Phonetic != word.Phonetic {
+				t.Fatalf("phonetic does not match shuffled question: %+v", q)
+			}
+			if direction == chineseToEnglish && q.Phonetic != "" {
+				t.Fatalf("Chinese prompt reveals answer phonetic: %+v", q)
+			}
 			if !ok {
 				t.Fatalf("unknown prompt: %+v", q)
 			}

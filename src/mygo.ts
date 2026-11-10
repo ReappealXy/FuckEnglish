@@ -46,6 +46,7 @@ export interface QuizState {
   direction: string;
   token: string;
   question: string;
+  phonetic: string;
   options: string[];
   index: number;
   total: number;

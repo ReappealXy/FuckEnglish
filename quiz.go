@@ -15,6 +15,7 @@ type QuizState struct {
 	Direction string   `json:"direction"`
 	Token     string   `json:"token"`
 	Question  string   `json:"question"`
+	Phonetic  string   `json:"phonetic"`
 	Options   []string `json:"options"`
 	Index     int      `json:"index"`
 	Total     int      `json:"total"`
@@ -27,9 +28,10 @@ type QuizState struct {
 }
 
 type quizQuestion struct {
-	prompt  string
-	options []string
-	correct int
+	prompt   string
+	phonetic string
+	options  []string
+	correct  int
 }
 
 type quizSession struct {
@@ -76,6 +78,9 @@ func (c *Core) startQuizLocked(direction string) error {
 			continue
 		}
 		question := quizQuestion{prompt: prompt, options: make([]string, 4)}
+		if direction == englishToChinese {
+			question.phonetic = strings.TrimSpace(w.Phonetic)
+		}
 		for pos, source := range rand.Perm(4) {
 			question.options[pos] = choices[source]
 			if source == 0 {
@@ -102,6 +107,7 @@ func (c *Core) quizSnapshotLocked() QuizState {
 	question := q.questions[q.index]
 	s.Token = fmt.Sprintf("%x-%d", q.id, q.index)
 	s.Question = question.prompt
+	s.Phonetic = question.phonetic
 	s.Options = append([]string{}, question.options...)
 	s.Answered = q.answered
 	if q.answered {

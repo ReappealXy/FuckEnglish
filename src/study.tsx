@@ -82,7 +82,7 @@ export function StudyView() {
       </div>
       <section class="study-panel" aria-label="单词学习内容">
         <div class="study-content-stage island-stage">
-          <LearningContent library={library} error={error} busy={busy}
+          <LearningContent variant="study" library={library} error={error} busy={busy}
             onSettings={() => void action(() => Island.openSettings())}
             onFocus={index => void action(() => Library.focus(index))}
             onOrder={order => void action(() => Library.setBrowseOrder(order))}

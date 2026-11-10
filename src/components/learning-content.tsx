@@ -4,6 +4,7 @@ type Props = {
   library: LibraryState | null;
   error?: string;
   busy?: boolean;
+  variant?: "study";
   onSettings?: () => void;
   onFocus?: (index: number) => void;
   onOrder?: (order: string) => void;
@@ -15,25 +16,26 @@ type Props = {
 
 export function LearningContent(props: Props) {
   const { library, busy } = props;
+  const study = props.variant === "study";
   const words = library?.words ?? [];
   const error = props.error || library?.error;
   const quiz = library?.quiz;
   const testing = !!quiz?.direction;
   const quizStatus = !quiz ? "" : quiz.completed ? "本轮小测已完成" : quiz.answered
-    ? quiz.choice === quiz.correct ? "答对了" : `答错了 · 正确答案 ${String.fromCharCode(65 + quiz.correct)}`
+    ? quiz.choice === quiz.correct ? "答对了" : study ? `答错了 · 正确答案：${quiz.options[quiz.correct]}` : `答错了 · 正确答案 ${String.fromCharCode(65 + quiz.correct)}`
     : quiz.total ? `题目与选项已乱序${quiz.skipped ? ` · 跳过 ${quiz.skipped} 词` : ""}` : `跳过 ${quiz.skipped} 词`;
 
   if (testing && quiz) return <>
-    <div class="vocabulary-page quiz-page">
+    <div class={`vocabulary-page quiz-page${study ? " study-quiz-page" : ""}`}>
       {quiz.completed ? <div class="quiz-message" role="status"><strong>本轮答对 {quiz.score} / {quiz.total} 题</strong><span>{quiz.skipped ? `${quiz.skipped} 个词因干扰项缺失或重复未参与本轮` : "本词表已全部测完"}</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.(quiz.direction)}>再测一轮</button><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
       : quiz.total === 0 ? <div class="quiz-message" role="status"><strong>没有可测试的单词</strong><span>请在 Excel 中为每个词填写三个不同的{quiz.direction === "english-chinese" ? "中文" : "英文"}干扰项，且不能与正确答案相同，再刷新词表。</span><span>原有单词仍可正常浏览。</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
-      : <><div class="quiz-prompt" tabIndex={0} aria-label="当前题目">{quiz.question}</div><div class="quiz-options" role="group" aria-label="选择答案">{quiz.options.map((option, index) => {
+      : <>{study ? <div class="study-quiz-heading"><div class="quiz-prompt" tabIndex={0} aria-label="当前题目">{quiz.question}</div>{quiz.direction === "english-chinese" && quiz.phonetic && <div class="quiz-phonetic" aria-label="音标">{quiz.phonetic}</div>}</div> : <div class="quiz-prompt" tabIndex={0} aria-label="当前题目">{quiz.question}</div>}<div class="quiz-options" role="group" aria-label="选择答案">{quiz.options.map((option, index) => {
         const correct = quiz.answered && index === quiz.correct;
         const wrong = quiz.answered && index === quiz.choice && index !== quiz.correct;
-        return <button type="button" key={`${quiz.token}-${index}`} class={`quiz-choice${correct ? " correct" : ""}${wrong ? " wrong" : ""}`} disabled={busy || quiz.answered} aria-label={`${String.fromCharCode(65 + index)}. ${option}${correct ? "，正确答案" : wrong ? "，回答错误" : ""}`} onClick={() => props.onAnswer?.(quiz.token, index)}><span class="quiz-letter">{String.fromCharCode(65 + index)}</span><span class="quiz-choice-text" tabIndex={quiz.answered ? 0 : -1}>{option}</span>{(correct || wrong) && <span class="quiz-mark">{correct ? "正确" : "选错"}</span>}</button>;
+        return <button type="button" key={`${quiz.token}-${index}`} class={`quiz-choice${correct ? " correct" : ""}${wrong ? " wrong" : ""}`} disabled={busy || quiz.answered} aria-label={`${study ? "" : `${String.fromCharCode(65 + index)}. `}${option}${correct ? "，正确答案" : wrong ? "，回答错误" : ""}`} onClick={() => props.onAnswer?.(quiz.token, index)}>{!study && <span class="quiz-letter">{String.fromCharCode(65 + index)}</span>}<span class="quiz-choice-text" tabIndex={quiz.answered ? 0 : -1}>{option}</span>{(correct || wrong) && <span class="quiz-mark">{correct ? "正确" : "选错"}</span>}</button>;
       })}</div></>}
     </div>
-    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || undefined}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" disabled={busy || !quiz.answered} onClick={() => props.onNext?.(quiz.token)}>{quiz.index + 1 === quiz.total ? "查看结果" : "下一题"}</button></div>}</footer>
+    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || quizStatus}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" disabled={busy || !quiz.answered} onClick={() => props.onNext?.(quiz.token)}>{quiz.index + 1 === quiz.total ? "查看结果" : "下一题"}</button></div>}</footer>
   </>;
 
   return <>

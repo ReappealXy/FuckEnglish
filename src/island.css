@@ -1,3 +1,4 @@
+@import "./learning-appearance.css";
 /* Ported from BrimDeck MainWindow.xaml, CollapsedGeometry.cs and PanelThemes.
    Original 32-DIP compact surface, 36-DIP toolbar and two usage columns.
    See licenses/BrimDeck-APACHE-2.0.txt and docs/BRIMDECK.md. */
@@ -18,7 +19,7 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
    Soft.Out is the original cubic Bezier (.22, .8, .28, 1). */
 .island-shadow { position: absolute; inset: 0; z-index: -2; pointer-events: none; opacity: 1; filter: drop-shadow(0 var(--island-shadow-depth) var(--island-shadow-blur) color-mix(in srgb, var(--island-shadow) calc(var(--island-shadow-opacity) * 100%), transparent)); transition: opacity calc(var(--island-duration) * .5) cubic-bezier(.22,.8,.28,1) calc(var(--island-duration) * .5); }
 .island-shadow-ink { position: absolute; inset: 1px; border-radius: 0 0 11px 11px; background: var(--island-surface); transition: border-radius var(--island-surface-time) var(--island-surface-ease) var(--island-surface-delay); }
-.expanded > .island-shadow { opacity: 0; transition-duration: calc(var(--island-duration) * .3); transition-delay: 0ms; }
+.expanded .island-shadow { opacity: 0; transition-duration: calc(var(--island-duration) * .3); transition-delay: 0ms; }
 .collapsed.style-capsule .island-shadow-ink { border-radius: 15px; }
 .collapsed.style-notch .island-shadow-ink { top: 0; }
 .style-line > .island-shadow { display: none; }
@@ -31,7 +32,7 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .collapsed.style-line .island-material::before, .collapsed.style-line .island-material::after { display: none; }
 .island-outline { position: absolute; pointer-events: none; }
 .island-stage button { appearance: none; font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
-.island-stage button:focus-visible { outline: 2px solid var(--island-accent); outline-offset: -2px; }
+.island-stage button:focus-visible { outline: 2px solid var(--island-paint-accent); outline-offset: -2px; }
 .island-compact { position: absolute; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; border: 0; border-radius: inherit; background: transparent; color: var(--island-text); opacity: 1; transform: scale(1); transition: opacity calc(var(--island-duration) * .38) cubic-bezier(.22,.8,.28,1) calc(var(--island-duration) * .62), transform calc(var(--island-duration) * .38) cubic-bezier(.22,.8,.28,1) calc(var(--island-duration) * .62); white-space: nowrap; }
 .style-notch .island-compact { padding-inline: 30px; }
 .island-stage .expanded .island-compact { opacity: 0; transform: scale(.85); pointer-events: none; transition-duration: calc(var(--island-duration) * .15); transition-delay: 0ms; }
@@ -43,11 +44,11 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-expanded-content { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; opacity: 1; transform: scale(1); transform-origin: top center; transition: opacity calc(var(--island-duration) * .68) cubic-bezier(.22,.8,.28,1) calc(var(--island-duration) * .12), transform calc(var(--island-duration) * .68) cubic-bezier(.22,.8,.28,1) calc(var(--island-duration) * .12); }
 .collapsed .island-expanded-content { opacity: 0; transform: scale(.96); pointer-events: none; transition: opacity calc(var(--island-duration) * .3) cubic-bezier(.22,.8,.28,1), transform calc(var(--island-duration) * .3) cubic-bezier(.45,0,.25,1); }
 .island-toolbar { position: relative; flex: 0 0 36px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px 0 10px; }
-.island-page-switch { display: flex; gap: 1px; padding: 2px; background: var(--island-fill); border-radius: 8px; z-index: 1; }
+.island-page-switch { display: flex; gap: 1px; padding: 2px; background: var(--island-paint-fill); border-radius: 8px; z-index: 1; }
 .island-toolbar button { display: grid; place-items: center; padding: 0; width: 28px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--island-secondary); }
-.island-toolbar button.selected { background: var(--island-selected); color: var(--island-text); }
-.island-toolbar button:hover { background: var(--island-hover); color: var(--island-text); }
-.island-toolbar button:active { background: var(--island-selected); }
+.island-toolbar button.selected { background: var(--island-paint-selected); color: var(--island-text); }
+.island-toolbar button:hover { background: var(--island-paint-hover); color: var(--island-text); }
+.island-toolbar button:active { background: var(--island-paint-selected); }
 .island-toolbar svg { width: 16px; height: 16px; }
 .island-clock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--island-clock); pointer-events: none; }
 .island-tools { display: flex; gap: 4px; z-index: 1; }
@@ -56,11 +57,11 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-statusbar { flex: 0 0 28px; padding: 3px 20px 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--island-secondary); font-size: 10.5px; white-space: nowrap; }
 .island-statusbar strong { font-weight: 500; color: var(--island-text); margin-left: 4px; }
 .island-status { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.island-status i { width: 4px; height: 4px; border-radius: 50%; background: var(--island-secondary); flex-shrink: 0; }
-.island-status.connected i { background: var(--island-good); }
+.island-status i { width: 4px; height: 4px; border-radius: 50%; background: var(--island-paint-secondary); flex-shrink: 0; }
+.island-status.connected i { background: var(--island-paint-good); }
 .island-preview-stage { user-select: none; }
 .compact-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; }
-.island-toolbar .wordbook-select { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; max-width: 230px; width: 0; flex: 1; height: 25px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--island-text); background: var(--island-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+.island-toolbar .wordbook-select { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; max-width: 230px; width: 0; flex: 1; height: 25px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--island-text); background: var(--island-paint-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
 .wordbook-select > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wordbook-select > svg { flex: 0 0 14px; }
 .book-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding: 0 10px 7px; }
@@ -68,19 +69,19 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-stage .book-picker-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; min-height: 0; padding: 2px 8px; border: 0; border-radius: 5px; color: var(--island-text); background: transparent; font-size: 11px; text-align: left; }
 .book-picker-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .book-picker-item > small { flex-shrink: 0; color: var(--island-secondary); font-size: 10px; }
-.island-stage .book-picker-item.selected { background: var(--island-selected); }
-.island-stage .book-picker-item:hover:not(:disabled) { background: var(--island-hover); }
+.island-stage .book-picker-item.selected { background: var(--island-paint-selected); }
+.island-stage .book-picker-item:hover:not(:disabled) { background: var(--island-paint-hover); }
 .book-picker-pagination { flex: 0 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--island-secondary); font-size: 10.5px; }
 .book-picker-pagination > span:first-child { margin-right: auto; padding-left: 8px; }
-.island-stage .book-picker-pagination button { padding: 3px 7px; border: 0; border-radius: 4px; color: var(--island-text); background: var(--island-fill); font-size: 10.5px; }
-.island-stage .book-picker-pagination button:hover:not(:disabled) { background: var(--island-hover); }
+.island-stage .book-picker-pagination button { padding: 3px 7px; border: 0; border-radius: 4px; color: var(--island-text); background: var(--island-paint-fill); font-size: 10.5px; }
+.island-stage .book-picker-pagination button:hover:not(:disabled) { background: var(--island-paint-hover); }
 .wordbook-count { margin-left: auto; color: var(--island-secondary); font-size: 10.5px; flex-shrink: 0; }
 .vocabulary-page { flex: 1; min-height: 0; padding: 0 18px; }
 .vocabulary-table { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .vocabulary-head, .vocabulary-row { display: grid; grid-template-columns: minmax(85px, 1fr) minmax(88px, 1fr) minmax(0, 2.1fr); column-gap: 9px; align-items: center; }
-.vocabulary-head { flex: 0 0 18px; font-size: 10px; color: var(--island-secondary); border-bottom: 1px solid var(--island-divider); }
+.vocabulary-head { flex: 0 0 18px; font-size: 10px; color: var(--island-secondary); border-bottom: 1px solid var(--island-paint-divider); }
 .vocabulary-rows { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(5, minmax(0, 1fr)); }
-.vocabulary-row { border-bottom: 1px solid var(--island-divider); min-height: 0; font-size: 11px; }
+.vocabulary-row { border-bottom: 1px solid var(--island-paint-divider); min-height: 0; font-size: 11px; }
 .vocabulary-row:last-child { border-bottom: 0; }
 .vocabulary-row > span { min-width: 0; }
 .island-stage .word-focus { max-width: 100%; display: block; padding: 3px 0; background: transparent; color: var(--island-text); border: 0; font-weight: 600; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -91,24 +92,24 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .word-pagination { display: flex; gap: 9px; align-items: center; }
 .word-pagination > span { min-width: 39px; text-align: center; }
 .island-stage .word-pagination button { border: 0; border-radius: 4px; background: transparent; color: var(--island-text); padding: 4px 5px; font-size: 10.5px; }
-.island-stage .word-pagination button:hover:not(:disabled) { background: var(--island-hover); }
+.island-stage .word-pagination button:hover:not(:disabled) { background: var(--island-paint-hover); }
 .island-stage button:disabled { opacity: .4; cursor: default; }
 .island-stage .island-compact:disabled { opacity: 1; }
 .island-stage .expanded .island-compact:disabled { opacity: 0; }
 .vocabulary-empty { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; font-size: 11px; color: var(--island-secondary); text-align: center; overflow: auto; }
-.island-stage .vocabulary-empty button { background: var(--island-fill); color: var(--island-text); border: 0; padding: 5px 10px; border-radius: 5px; }
+.island-stage .vocabulary-empty button { background: var(--island-paint-fill); color: var(--island-text); border: 0; padding: 5px 10px; border-radius: 5px; }
 @media (prefers-reduced-motion: reduce) { .island-stage *, .island-stage *::before { transition: none !important; animation: none !important; } }
 
 .island-toolbar { gap: 8px; }
-.capsule-mode { border: 0; border-radius: 5px; color: var(--island-text); background: var(--island-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+.capsule-mode { border: 0; border-radius: 5px; color: var(--island-text); background: var(--island-paint-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
 .capsule-mode { width: 80px; flex-shrink: 0; height: 25px; padding: 0 5px; }
-.capsule-mode option { color: var(--island-text); background: var(--island-surface); }
-.capsule-mode:focus-visible { outline: 2px solid var(--island-accent); }
+.capsule-mode option { color: var(--island-text); background: var(--island-paint-surface); }
+.capsule-mode:focus-visible { outline: 2px solid var(--island-paint-accent); }
 .browse-status { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.browse-order { display: inline-flex; flex-shrink: 0; padding: 2px; gap: 1px; border-radius: 5px; background: var(--island-fill); -webkit-app-region: no-drag; }
+.browse-order { display: inline-flex; flex-shrink: 0; padding: 2px; gap: 1px; border-radius: 5px; background: var(--island-paint-fill); -webkit-app-region: no-drag; }
 .island-stage .browse-order button { min-width: 30px; padding: 2px 4px; border: 0; border-radius: 4px; color: var(--island-secondary); background: transparent; font: inherit; font-size: 10.5px; }
-.island-stage .browse-order button[aria-pressed="true"] { color: var(--island-text); background: var(--island-selected); }
-.island-stage .browse-order button:hover:not(:disabled) { color: var(--island-text); background: var(--island-hover); }
+.island-stage .browse-order button[aria-pressed="true"] { color: var(--island-text); background: var(--island-paint-selected); }
+.island-stage .browse-order button:hover:not(:disabled) { color: var(--island-text); background: var(--island-paint-hover); }
 .quiz-page { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; padding-bottom: 4px; }
 .quiz-heading { flex: 0 0 auto; min-width: 0; text-align: center; }
 .quiz-prompt { flex: 0 1 auto; min-height: 18px; max-height: 42px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; line-height: 20px; }
@@ -116,16 +117,16 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-surface .quiz-phonetic { max-height: 28px; margin-top: 2px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; color: var(--island-secondary); font-family: "Segoe UI", "Arial", sans-serif; font-size: 11px; line-height: 14px; }
 .quiz-options { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
 .island-stage .quiz-choice { display: flex; gap: 6px; align-items: center; min-height: 0; min-width: 0; padding: 3px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--island-text); font-size: 12px; text-align: left; }
-.island-stage .quiz-choice:hover:not(:disabled), .island-stage .quiz-choice:focus-visible { background: var(--island-hover); border-color: var(--island-divider); }
+.island-stage .quiz-choice:hover:not(:disabled), .island-stage .quiz-choice:focus-visible { background: var(--island-paint-hover); border-color: var(--island-paint-divider); }
 .quiz-choice-text { flex: 1; min-width: 0; max-height: 100%; line-height: 15px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; white-space: pre-wrap; }
 .quiz-mark { flex-shrink: 0; font-size: 9px; }
 .island-stage .quiz-choice:disabled { opacity: 1; }
-.island-stage .quiz-choice.correct { border-color: var(--island-good); background: color-mix(in srgb, var(--island-good) 14%, var(--island-fill)); }
-.island-stage .quiz-choice.wrong { border-color: var(--island-up); background: color-mix(in srgb, var(--island-up) 14%, var(--island-fill)); }
+.island-stage .quiz-choice.correct { border-color: var(--island-paint-good); background: color-mix(in srgb, var(--island-paint-good) 14%, var(--island-paint-fill)); }
+.island-stage .quiz-choice.wrong { border-color: var(--island-paint-up); background: color-mix(in srgb, var(--island-paint-up) 14%, var(--island-paint-fill)); }
 .quiz-choice.correct .quiz-mark { color: var(--island-good); }
 .quiz-message { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; overflow: auto; text-align: center; color: var(--island-secondary); font-size: 11px; }
 .quiz-message strong { font-size: 16px; color: var(--island-text); }
 .quiz-actions { display: flex; gap: 8px; }
-.island-stage .quiz-actions button { padding: 5px 10px; border: 0; border-radius: 5px; color: var(--island-text); background: var(--island-fill); }
-.island-stage .quiz-actions button:hover:not(:disabled) { background: var(--island-hover); }
+.island-stage .quiz-actions button { padding: 5px 10px; border: 0; border-radius: 5px; color: var(--island-text); background: var(--island-paint-fill); }
+.island-stage .quiz-actions button:hover:not(:disabled) { background: var(--island-paint-hover); }
 .quiz-footer .island-status { display: block; }

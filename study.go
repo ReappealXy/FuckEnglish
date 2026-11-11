@@ -32,9 +32,12 @@ func showStudyWindow(core *Core) {
 		Title: "FuckEnglish · 背单词", URL: "/?view=study",
 		Width: 900, Height: 640, MinWidth: 560, MinHeight: 420,
 		TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 48,
-		BackgroundColor: "light-dark(#f6f7f9, #111318)",
-		Hidden:          true, StateKey: "study",
+		Transparent: true, BackgroundColor: "#00000000", Vibrancy: mygo.VibrancyHUD,
+		Hidden: true, StateKey: "study",
 	})
+	// Keep a compositor-backed host so transparent CSS reveals the desktop,
+	// then remove the system material to leave opacity under our two controls.
+	w.SetVibrancy(mygo.VibrancyNone)
 	studyWin, studyReady = w, false
 	w.OnReadyToShow(func() {
 		studyReady = true

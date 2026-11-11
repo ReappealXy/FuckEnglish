@@ -1,0 +1,44 @@
+/* Text and decoration use separate alpha channels; container opacity would
+   fade the text whenever its background is faded. Keep raw theme colors intact. */
+.island-stage {
+  --island-paint-accent: color-mix(in srgb, var(--island-accent) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-divider: color-mix(in srgb, var(--island-divider) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-fill: color-mix(in srgb, var(--island-fill) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-hover: color-mix(in srgb, var(--island-hover) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-selected: color-mix(in srgb, var(--island-selected) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-surface: color-mix(in srgb, var(--island-surface) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-secondary: color-mix(in srgb, var(--island-secondary) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-good: color-mix(in srgb, var(--island-good) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --island-paint-up: color-mix(in srgb, var(--island-up) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+}
+.island-stage, .island-stage *, .study-window, .study-window * {
+  -webkit-text-fill-color: color-mix(in srgb, currentColor calc(var(--learning-text-opacity, 1) * 100%), transparent);
+}
+.island-background {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: var(--learning-background-opacity, 1);
+}
+.island-toolbar svg { opacity: var(--learning-background-opacity, 1); }
+
+html.study-document, .study-document body, .study-document #app { background: transparent; }
+.study-window {
+  --deck-paint-accent: color-mix(in srgb, var(--deck-accent) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --deck-paint-border: color-mix(in srgb, var(--deck-border) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --deck-paint-inset: color-mix(in srgb, var(--deck-inset) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --deck-paint-selected: color-mix(in srgb, var(--deck-selected) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  --deck-paint-surface: color-mix(in srgb, var(--deck-surface) calc(var(--learning-background-opacity, 1) * 100%), transparent);
+  position: relative;
+  isolation: isolate;
+}
+.study-window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--deck-surface);
+  opacity: var(--learning-background-opacity, 1);
+}
+.study-window .app-titlebar { border-color: var(--deck-paint-border); }

@@ -8,5 +8,6 @@ const view = new URLSearchParams(location.search).get("view");
 const island = view === "island";
 const study = view === "study";
 if (island) document.documentElement.classList.add("island-window");
+if (study) document.documentElement.classList.add("study-document");
 if (isMyGo()) document.documentElement.dataset.platform = runtime().platform;
 render(island ? <IslandView /> : study ? <StudyView /> : <App />, document.getElementById("app")!);

@@ -3,6 +3,7 @@ import type { Settings, LibraryState } from "../mygo";
 import { islandThemeStyle } from "../lib/island-theme";
 import { LearningContent } from "./learning-content";
 import { paginateBooks, selectedBookPage } from "../lib/book-pagination";
+import { transparencyStyle } from "../lib/learning-appearance";
 
 type Props = {
   settings: Partial<Settings> | null; library: LibraryState | null; expanded: boolean; error?: string; preview?: boolean;
@@ -32,11 +33,13 @@ export function IslandSurface(props: Props) {
   const current = words[library?.focus ?? 0] ?? words[0];
   const quiz = library?.quiz;
   const error = props.error || library?.error;
-  return <div class={`island-stage ${preview ? "island-preview-stage" : ""}`} style={{ ...islandThemeStyle(settings?.islandTheme ?? "dark", systemDark), "--island-duration": `${settings?.islandAnimationDuration ?? 360}ms` }}>
+  return <div class={`island-stage ${preview ? "island-preview-stage" : ""}`} style={{ ...islandThemeStyle(settings?.islandTheme ?? "dark", systemDark), ...transparencyStyle(settings), "--island-duration": `${settings?.islandAnimationDuration ?? 360}ms` }}>
     <div class={`island-surface style-${shape} ${expanded ? "expanded" : "collapsed"}`} onPointerEnter={props.onEnter} onPointerLeave={props.onLeave}>
       <svg class="island-outline" width="0" height="0" aria-hidden="true"><defs><clipPath id={preview ? "preview-notch" : "word-notch"} clipPathUnits="objectBoundingBox"><path d="M0 0 H1 C.981 0 .957 0 .945 .039 C.933 .079 .933 .158 .933 .219 V.625 Q.933 1 .882 1 H.118 Q.067 1 .067 .625 V.219 C.067 .158 .067 .079 .055 .039 C.043 0 .019 0 0 0 Z" /></clipPath></defs></svg>
-      <div class="island-shadow" aria-hidden="true"><div class="island-shadow-ink" style={!expanded && shape === "notch" ? { clipPath: `url(#${preview ? "preview-notch" : "word-notch"})` } : undefined} /></div>
-      <div class="island-material" style={!expanded && shape === "notch" ? { clipPath: `url(#${preview ? "preview-notch" : "word-notch"})` } : undefined} />
+      <div class="island-background" aria-hidden="true">
+        <div class="island-shadow"><div class="island-shadow-ink" style={!expanded && shape === "notch" ? { clipPath: `url(#${preview ? "preview-notch" : "word-notch"})` } : undefined} /></div>
+        <div class="island-material" style={!expanded && shape === "notch" ? { clipPath: `url(#${preview ? "preview-notch" : "word-notch"})` } : undefined} />
+      </div>
       <button type="button" class="island-compact" onClick={props.onExpand} disabled={preview || expanded} tabIndex={expanded ? -1 : 0} aria-label="展开单词胶囊" aria-expanded={expanded}>
         {shape !== "line" && <span class={current ? "compact-word" : "compact-empty"}>{current?.english ?? (library ? "选择一个词表" : "正在读取词表…")}</span>}
       </button>

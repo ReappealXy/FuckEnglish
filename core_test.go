@@ -150,3 +150,69 @@ func TestScanBookNaturalOrder(t *testing.T) {
 		t.Fatalf("sorting changed selection or resume page: %+v", state)
 	}
 }
+
+func TestOldSettingsKeepOpaqueDefaults(t *testing.T) {
+	dir := t.TempDir()
+	folder, err := filepath.Abs("words")
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := map[string]any{"folder": folder, "selected": "list2.xlsx", "pages": map[string]int{"list2.xlsx": 4}, "pageSize": 5, "islandTheme": "light"}
+	data, err := json.Marshal(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "settings.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	c := &Core{}
+	if err := c.Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	if c.cfg.BackgroundTransparency != 0 || c.cfg.TextTransparency != 0 {
+		t.Fatalf("legacy settings became transparent: %+v", c.cfg.Settings)
+	}
+	if s := c.snapshot(); s.Folder != folder || s.Selected != "list2.xlsx" || s.Page != 4 || c.cfg.IslandTheme != "light" {
+		t.Fatalf("legacy navigation or theme changed: %+v, %q", s, c.cfg.IslandTheme)
+	}
+}
+
+func TestTransparencyBoundsPersistenceAndRollback(t *testing.T) {
+	for _, values := range [][4]int{{-8, 130, 0, 100}, {130, -8, 100, 0}, {60, 35, 60, 35}} {
+		c := testCore(t)
+		s := c.cfg.Settings
+		s.BackgroundTransparency, s.TextTransparency = values[0], values[1]
+		s = normalizeTransparency(s)
+		if _, err := c.change(func() error { c.cfg.Settings = s; return nil }); err != nil {
+			t.Fatal(err)
+		}
+		fresh := &Core{}
+		if err := fresh.Init(filepath.Dir(c.path)); err != nil {
+			t.Fatal(err)
+		}
+		if fresh.cfg.BackgroundTransparency != values[2] || fresh.cfg.TextTransparency != values[3] {
+			t.Fatalf("transparency was not clamped and restored: %+v", fresh.cfg.Settings)
+		}
+		fresh.path = filepath.Join(t.TempDir(), "missing", "settings.json")
+		before := fresh.cfg.Settings
+		if _, err := fresh.change(func() error { fresh.cfg.BackgroundTransparency = 12; fresh.cfg.TextTransparency = 89; return nil }); err == nil {
+			t.Fatal("expected save failure")
+		}
+		if fresh.cfg.Settings != before {
+			t.Fatalf("failed save changed transparency: %+v, want %+v", fresh.cfg.Settings, before)
+		}
+	}
+	// A hand-edited config is clamped on read as well as through Preferences.Save.
+	c := testCore(t)
+	c.cfg.BackgroundTransparency, c.cfg.TextTransparency = -10, 200
+	if err := c.saveLocked(); err != nil {
+		t.Fatal(err)
+	}
+	fresh := &Core{}
+	if err := fresh.Init(filepath.Dir(c.path)); err != nil {
+		t.Fatal(err)
+	}
+	if fresh.cfg.BackgroundTransparency != 0 || fresh.cfg.TextTransparency != 100 {
+		t.Fatalf("out-of-range disk settings were not clamped: %+v", fresh.cfg.Settings)
+	}
+}

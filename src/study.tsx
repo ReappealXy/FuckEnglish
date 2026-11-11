@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "preact/hooks";
-import { events, Island, Library, type LibraryState } from "./mygo";
+import { events, Island, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { browsePageTarget, isPagingControl } from "./lib/island-pagination";
 import { LearningContent } from "./components/learning-content";
 import { WindowTitlebar } from "./components/window-titlebar";
+import { transparencyStyle } from "./lib/learning-appearance";
 import "./island.css";
 import "./study.css";
 
 export function StudyView() {
   const [library, setLibrary] = useState<LibraryState | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const requestBusy = useRef(false);
@@ -15,6 +17,8 @@ export function StudyView() {
   useEffect(() => {
     let active = true;
     let gotLibrary = false;
+    let gotSettings = false;
+    const offSettings = events.settings.on(value => { gotSettings = true; setSettings(value); });
     const offLibrary = events.library.on(value => {
       gotLibrary = true;
       setLibrary(value);
@@ -22,9 +26,11 @@ export function StudyView() {
     Library.snapshot().then(value => {
       if (active && !gotLibrary) setLibrary(value);
     }).catch(reason => setError(String(reason)));
+    Preferences.get().then(value => { if (active && !gotSettings) setSettings(value); }).catch(reason => setError(String(reason)));
     return () => {
       active = false;
       offLibrary();
+      offSettings();
     };
   }, []);
 
@@ -61,7 +67,7 @@ export function StudyView() {
     return () => window.removeEventListener("keydown", keydown);
   });
 
-  return <div class="study-window deck-palette">
+  return <div class="study-window deck-palette" style={transparencyStyle(settings)}>
     <WindowTitlebar subtitle="背单词" />
     <main class="study-main">
       <div class="study-toolbar">

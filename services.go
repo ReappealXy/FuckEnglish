@@ -129,6 +129,7 @@ func (p *Preferences) Get() Settings {
 	return s
 }
 func (p *Preferences) Save(s Settings) (Settings, error) {
+	s = normalizeTransparency(s)
 	valid := map[string]bool{"capsule": true, "notch": true, "line": true}
 	if !valid[s.IslandStyle] {
 		s.IslandStyle = "capsule"

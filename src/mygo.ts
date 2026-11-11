@@ -68,6 +68,8 @@ export interface Settings {
   islandAnimationDuration: number;
   islandWidth: number;
   islandHeight: number;
+  backgroundTransparency: number;
+  textTransparency: number;
   openAtLogin: boolean;
 }
 

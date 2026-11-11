@@ -31,6 +31,8 @@ type Settings struct {
 	IslandAnimationDuration int    `json:"islandAnimationDuration"`
 	IslandWidth             int    `json:"islandWidth"`
 	IslandHeight            int    `json:"islandHeight"`
+	BackgroundTransparency  int    `json:"backgroundTransparency"`
+	TextTransparency        int    `json:"textTransparency"`
 	OpenAtLogin             bool   `json:"openAtLogin"`
 }
 type settingsFile struct{ Settings }
@@ -78,6 +80,13 @@ type Core struct {
 func defaultSettings() Settings {
 	return Settings{IslandVisible: true, IslandStyle: "capsule", IslandTheme: "dark", IslandHover: true, IslandExpandDelay: 160, IslandCollapseDelay: 420, IslandAnimationDuration: 360, IslandWidth: 520, IslandHeight: 200}
 }
+
+func normalizeTransparency(s Settings) Settings {
+	s.BackgroundTransparency = max(0, min(s.BackgroundTransparency, 100))
+	s.TextTransparency = max(0, min(s.TextTransparency, 100))
+	return s
+}
+
 func (c *Core) Init(dir string) error {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
@@ -94,6 +103,7 @@ func (c *Core) Init(dir string) error {
 			return fmt.Errorf("设置文件损坏，请备份后移走 %s：%w", c.path, err)
 		}
 	}
+	c.cfg.Settings = normalizeTransparency(c.cfg.Settings)
 	if c.cfg.Pages == nil {
 		c.cfg.Pages = map[string]int{}
 	}

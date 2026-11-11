@@ -20,7 +20,7 @@
   z-index: -1;
   opacity: var(--learning-background-opacity, 1);
 }
-.island-toolbar svg { opacity: var(--learning-background-opacity, 1); }
+.island-toolbar svg { opacity: var(--learning-text-opacity, 1); }
 
 html.study-document, .study-document body, .study-document #app { background: transparent; }
 .study-window {

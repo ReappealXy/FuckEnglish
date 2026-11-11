@@ -8,6 +8,7 @@
 .study-actions button { min-height: 34px; padding: 0 11px; border: 1px solid var(--deck-paint-border); border-radius: 5px; background: var(--deck-paint-selected); color: var(--deck-text); font-size: 12px; white-space: nowrap; }
 .study-actions button:hover:not(:disabled) { background: var(--deck-paint-inset); }
 .study-actions .study-return { background: var(--deck-paint-accent); border-color: transparent; color: #fff; }
+.study-window.transparent-background .study-return { color: var(--deck-text); }
 .study-actions .study-return:hover:not(:disabled) { background: color-mix(in srgb, color-mix(in srgb, var(--deck-accent) 88%, #000) calc(var(--learning-background-opacity, 1) * 100%), transparent); }
 .study-panel { flex: 1; min-height: 0; min-width: 0; display: flex; overflow: hidden; border: 1px solid var(--deck-paint-border); border-radius: 8px; background: transparent; }
 .study-content-stage { --island-text: var(--deck-text); --island-secondary: var(--deck-secondary); --island-accent: var(--deck-accent); --island-divider: var(--deck-border); --island-fill: var(--deck-inset); --island-hover: color-mix(in srgb, var(--deck-accent) 9%, var(--deck-surface)); --island-selected: var(--deck-selected); --island-surface: var(--deck-surface); --island-good: #218443; --island-up: #c7433a; flex: 1; width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 14px 18px 9px; color: var(--deck-text); color-scheme: light dark; font: 13px/1.45 "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif; }

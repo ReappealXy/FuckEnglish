@@ -83,7 +83,7 @@ export function StudyView() {
     return () => window.removeEventListener("keydown", keydown);
   });
 
-  return <div class={`study-window deck-palette${maximized ? " maximized" : ""}`} style={transparencyStyle(settings)}>
+  return <div class={`study-window deck-palette${maximized ? " maximized" : ""}${(settings?.backgroundTransparency ?? 0) > 0 ? " transparent-background" : ""}`} style={transparencyStyle(settings)}>
     <WindowTitlebar subtitle="背单词" />
     <main class="study-main">
       <div class="study-toolbar">

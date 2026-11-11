@@ -22,7 +22,8 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .expanded .island-shadow { opacity: 0; transition-duration: calc(var(--island-duration) * .3); transition-delay: 0ms; }
 .collapsed.style-capsule .island-shadow-ink { border-radius: 15px; }
 .collapsed.style-notch .island-shadow-ink { top: 0; }
-.style-line > .island-shadow { display: none; }
+.style-line .island-shadow { display: none; }
+.collapsed.style-line .island-background { clip-path: inset(4px 8px 2px round 2px); }
 .island-material { position: absolute; inset: 0; z-index: -1; background: var(--island-material), var(--island-surface); border-radius: 0 0 12px 12px; transition: border-radius var(--island-surface-time) var(--island-surface-ease) var(--island-surface-delay), background-color 0ms linear; pointer-events: none; }
 .island-material::before, .island-material::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
 .island-material::before { background: repeating-linear-gradient(180deg, var(--island-text) 0 1px, transparent 1px 3px); opacity: var(--island-scanlines); }
@@ -112,9 +113,10 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-stage .browse-order button:hover:not(:disabled) { color: var(--island-text); background: var(--island-paint-hover); }
 .quiz-page { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; padding-bottom: 4px; }
 .quiz-heading { flex: 0 0 auto; min-width: 0; text-align: center; }
-.quiz-prompt { flex: 0 1 auto; min-height: 18px; max-height: 42px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; line-height: 20px; }
-.island-surface .quiz-prompt { max-height: 48px; font-size: 22px; font-weight: 500; line-height: 24px; }
-.island-surface .quiz-phonetic { max-height: 28px; margin-top: 2px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; color: var(--island-secondary); font-family: "Segoe UI", "Arial", sans-serif; font-size: 11px; line-height: 14px; }
+.quiz-prompt { min-height: 0; overflow-wrap: anywhere; font-size: calc(var(--quiz-prompt-size, 14px) * var(--quiz-heading-scale, 1)); font-weight: 600; line-height: 1.4; }
+.island-surface .quiz-prompt { --quiz-prompt-size: 22px; font-weight: 500; }
+.quiz-phonetic { font-size: calc(var(--quiz-phonetic-size, 11px) * var(--quiz-heading-scale, 1)); line-height: 1.4; overflow-wrap: anywhere; }
+.island-surface .quiz-phonetic { margin-top: 2px; color: var(--island-secondary); font-family: "Segoe UI", "Arial", sans-serif; }
 .quiz-options { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
 .island-stage .quiz-choice { display: flex; gap: 6px; align-items: center; min-height: 0; min-width: 0; padding: 3px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--island-text); font-size: 12px; text-align: left; }
 .island-stage .quiz-choice:hover:not(:disabled), .island-stage .quiz-choice:focus-visible { background: var(--island-paint-hover); border-color: var(--island-paint-divider); }

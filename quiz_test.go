@@ -13,94 +13,114 @@ import (
 func quizCore(t *testing.T) *Core {
 	c := testCore(t)
 	c.words[c.cfg.Selected] = []wordbook.Word{
-		{English: "aircraft", Phonetic: "[ˈeəkrɑːft]", Meaning: "n. 航空器；飞行器", ChineseDistractors: []string{"n. 机场", "n. 飞行员", "n. 跑道"}, EnglishDistractors: []string{"airport", "pilot", "runway"}},
-		{English: "aisle", Meaning: "n. 过道", ChineseDistractors: []string{"n. 岛屿", "n. 出口", "n. 座位"}, EnglishDistractors: []string{"island", "exit", "seat"}},
+		{English: "aircraft", Phonetic: "[ˈeəkrɑːft]", Meaning: "n. 航空器；飞行器", ChineseDistractors: []string{"n. 机场", "n. 飞行员", "n. 跑道"}},
+		{English: "aisle", Meaning: "n. 过道", ChineseDistractors: []string{"n. 岛屿", "n. 出口", "n. 座位"}},
 		{English: "old", Meaning: "旧的"},
-		{English: "alert", Meaning: "警觉的", ChineseDistractors: []string{"安静的", "迟钝的", "疲倦的"}, EnglishDistractors: []string{"ALERT", "tired", "quiet"}},
+		{English: "alert", Meaning: "警觉的", ChineseDistractors: []string{"安静的", "迟钝的", "疲倦的"}},
 	}
 	return c
 }
 
-func TestQuizDirectionsAndEligibility(t *testing.T) {
-	for _, direction := range []string{englishToChinese, chineseToEnglish} {
-		c := quizCore(t)
-		l := &Library{c}
-		s, err := l.StartQuiz(direction)
+func TestQuizEnglishToChineseAndEligibility(t *testing.T) {
+	c := quizCore(t)
+	l := &Library{c}
+	s, err := l.StartQuiz(englishToChinese)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = 3
+	if s.Quiz.Total != want || s.Quiz.Skipped != 1 {
+		t.Fatalf("eligibility: %+v", s.Quiz)
+	}
+	seen := map[string]bool{}
+	for i := 0; i < want; i++ {
+		q := s.Quiz
+		if len(q.Options) != 4 || q.Answered || q.Correct != -1 || seen[q.Question] {
+			t.Fatalf("question: %+v", q)
+		}
+		seen[q.Question] = true
+		var word wordbook.Word
+		for _, w := range c.words[c.cfg.Selected] {
+			if w.English == q.Question {
+				word = w
+			}
+		}
+		_, choices, ok := quizChoices(word)
+		if q.Phonetic != word.Phonetic {
+			t.Fatalf("phonetic does not match shuffled question: %+v", q)
+		}
+		if !ok {
+			t.Fatalf("unknown prompt: %+v", q)
+		}
+		correct := -1
+		uniqueOptions := map[string]bool{}
+		for index, option := range q.Options {
+			if uniqueOptions[option] {
+				t.Fatalf("duplicate option: %q", option)
+			}
+			uniqueOptions[option] = true
+			found := false
+			for _, choice := range choices {
+				if choice == option {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("unprovided distractor: %q", option)
+			}
+			if option == choices[0] {
+				correct = index
+			}
+		}
+		if correct < 0 {
+			t.Fatal("correct answer missing")
+		}
+		if _, err := l.NextQuiz(q.Token); err == nil {
+			t.Fatal("advanced unanswered question")
+		}
+		s, err = l.AnswerQuiz(q.Token, correct)
+		if err != nil || !s.Quiz.Answered || s.Quiz.Correct != correct || s.Quiz.Score != i+1 {
+			t.Fatalf("answer: %+v %v", s.Quiz, err)
+		}
+		duplicate, err := l.AnswerQuiz(q.Token, (correct+1)%4)
+		if err != nil || duplicate.Quiz.Choice != correct || duplicate.Quiz.Score != i+1 {
+			t.Fatal("duplicate answer changed score")
+		}
+		s, err = l.NextQuiz(q.Token)
 		if err != nil {
 			t.Fatal(err)
 		}
-		want := 3
-		if direction == chineseToEnglish {
-			want = 2
+		if _, err := l.NextQuiz(q.Token); err == nil {
+			t.Fatal("stale next token accepted")
 		}
-		if s.Quiz.Total != want || s.Quiz.Skipped != 4-want {
-			t.Fatalf("eligibility: %+v", s.Quiz)
+		if _, err := l.AnswerQuiz(q.Token, correct); err == nil {
+			t.Fatal("stale answer accepted")
 		}
-		seen := map[string]bool{}
-		for i := 0; i < want; i++ {
-			q := s.Quiz
-			if len(q.Options) != 4 || q.Answered || q.Correct != -1 || seen[q.Question] {
-				t.Fatalf("question: %+v", q)
-			}
-			seen[q.Question] = true
-			var word wordbook.Word
-			for _, w := range c.words[c.cfg.Selected] {
-				if direction == englishToChinese && w.English == q.Question || direction == chineseToEnglish && w.Meaning == q.Question {
-					word = w
-				}
-			}
-			_, choices, ok := quizChoices(word, direction)
-			if direction == englishToChinese && q.Phonetic != word.Phonetic {
-				t.Fatalf("phonetic does not match shuffled question: %+v", q)
-			}
-			if direction == chineseToEnglish && q.Phonetic != "" {
-				t.Fatalf("Chinese prompt reveals answer phonetic: %+v", q)
-			}
-			if !ok {
-				t.Fatalf("unknown prompt: %+v", q)
-			}
-			correct := -1
-			for index, option := range q.Options {
-				found := false
-				for _, choice := range choices {
-					if choice == option {
-						found = true
-					}
-				}
-				if !found {
-					t.Fatalf("unprovided distractor: %q", option)
-				}
-				if option == choices[0] {
-					correct = index
-				}
-			}
-			if correct < 0 {
-				t.Fatal("correct answer missing")
-			}
-			if _, err := l.NextQuiz(q.Token); err == nil {
-				t.Fatal("advanced unanswered question")
-			}
-			s, err = l.AnswerQuiz(q.Token, correct)
-			if err != nil || !s.Quiz.Answered || s.Quiz.Correct != correct || s.Quiz.Score != i+1 {
-				t.Fatalf("answer: %+v %v", s.Quiz, err)
-			}
-			duplicate, err := l.AnswerQuiz(q.Token, (correct+1)%4)
-			if err != nil || duplicate.Quiz.Choice != correct || duplicate.Quiz.Score != i+1 {
-				t.Fatal("duplicate answer changed score")
-			}
-			s, err = l.NextQuiz(q.Token)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := l.NextQuiz(q.Token); err == nil {
-				t.Fatal("stale next token accepted")
-			}
-			if _, err := l.AnswerQuiz(q.Token, correct); err == nil {
-				t.Fatal("stale answer accepted")
-			}
+	}
+	if !s.Quiz.Completed || s.Quiz.Score != want || len(s.Quiz.Options) != 0 {
+		t.Fatalf("result: %+v", s.Quiz)
+	}
+}
+
+func TestQuizRemovedDirectionsPreserveCurrentSession(t *testing.T) {
+	c := quizCore(t)
+	l := &Library{c}
+	s, err := l.StartQuiz(englishToChinese)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrong := (c.quiz.questions[0].correct + 1) % 4
+	s, err = l.AnswerQuiz(s.Quiz.Token, wrong)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, direction := range []string{"chinese-english", "unknown", ""} {
+		got, err := l.StartQuiz(direction)
+		if err == nil {
+			t.Fatalf("unsupported direction accepted: %q", direction)
 		}
-		if !s.Quiz.Completed || s.Quiz.Score != want || len(s.Quiz.Options) != 0 {
-			t.Fatalf("result: %+v", s.Quiz)
+		if !reflect.DeepEqual(got.Quiz, s.Quiz) || !reflect.DeepEqual(l.Snapshot().Quiz, s.Quiz) {
+			t.Fatalf("rejected direction changed current quiz: %q", direction)
 		}
 	}
 }
@@ -137,57 +157,52 @@ func TestQuizWrongAnswersEmptyAndReset(t *testing.T) {
 }
 
 func TestQuizAutoAdvanceCorrectOnlyAndFinishManually(t *testing.T) {
-	for _, direction := range []string{englishToChinese, chineseToEnglish} {
-		t.Run(direction, func(t *testing.T) {
-			c := quizCore(t)
-			c.words[c.cfg.Selected][3].EnglishDistractors = []string{"quiet", "tired", "slow"}
-			l := &Library{c}
-			s, _ := l.StartQuiz(direction)
-			if s.Quiz.Total != 3 {
-				t.Fatalf("need three questions: %+v", s.Quiz)
-			}
-			correct := c.quiz.questions[0].correct
-			answered, err := l.AnswerQuiz(s.Quiz.Token, correct)
-			if err != nil || !answered.Quiz.Answered || answered.Quiz.Index != 0 {
-				t.Fatalf("correct feedback missing: %+v %v", answered.Quiz, err)
-			}
-			// Repeated delivery must neither add points nor schedule another skip.
-			_, _ = l.AnswerQuiz(s.Quiz.Token, correct)
-			deadline := time.Now().Add(3 * time.Second)
-			for l.Snapshot().Quiz.Index == 0 && time.Now().Before(deadline) {
-				time.Sleep(10 * time.Millisecond)
-			}
-			s = l.Snapshot()
-			if s.Quiz.Index != 1 || s.Quiz.Answered || s.Quiz.Score != 1 {
-				t.Fatalf("correct answer did not advance once: %+v", s.Quiz)
-			}
-			c.mu.Lock()
-			wrong := (c.quiz.questions[1].correct + 1) % 4
-			c.mu.Unlock()
-			s, _ = l.AnswerQuiz(s.Quiz.Token, wrong)
-			time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
-			if got := l.Snapshot().Quiz; got.Index != 1 || !got.Answered || got.Score != 1 {
-				t.Fatalf("wrong answer advanced automatically: %+v", got)
-			}
-			s, _ = l.NextQuiz(s.Quiz.Token)
-			c.mu.Lock()
-			correct = c.quiz.questions[2].correct
-			c.mu.Unlock()
-			s, _ = l.AnswerQuiz(s.Quiz.Token, correct)
-			time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
-			if got := l.Snapshot().Quiz; got.Index != 2 || got.Completed || !got.Answered {
-				t.Fatalf("last question completed without confirmation: %+v", got)
-			}
-			s, err = l.NextQuiz(s.Quiz.Token)
-			if err != nil || !s.Quiz.Completed || s.Quiz.Score != 2 {
-				t.Fatalf("manual finish failed: %+v %v", s.Quiz, err)
-			}
-		})
+	c := quizCore(t)
+	l := &Library{c}
+	s, _ := l.StartQuiz(englishToChinese)
+	if s.Quiz.Total != 3 {
+		t.Fatalf("need three questions: %+v", s.Quiz)
+	}
+	correct := c.quiz.questions[0].correct
+	answered, err := l.AnswerQuiz(s.Quiz.Token, correct)
+	if err != nil || !answered.Quiz.Answered || answered.Quiz.Index != 0 {
+		t.Fatalf("correct feedback missing: %+v %v", answered.Quiz, err)
+	}
+	// Repeated delivery must neither add points nor schedule another skip.
+	_, _ = l.AnswerQuiz(s.Quiz.Token, correct)
+	deadline := time.Now().Add(3 * time.Second)
+	for l.Snapshot().Quiz.Index == 0 && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	s = l.Snapshot()
+	if s.Quiz.Index != 1 || s.Quiz.Answered || s.Quiz.Score != 1 {
+		t.Fatalf("correct answer did not advance once: %+v", s.Quiz)
+	}
+	c.mu.Lock()
+	wrong := (c.quiz.questions[1].correct + 1) % 4
+	c.mu.Unlock()
+	s, _ = l.AnswerQuiz(s.Quiz.Token, wrong)
+	time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
+	if got := l.Snapshot().Quiz; got.Index != 1 || !got.Answered || got.Score != 1 {
+		t.Fatalf("wrong answer advanced automatically: %+v", got)
+	}
+	s, _ = l.NextQuiz(s.Quiz.Token)
+	c.mu.Lock()
+	correct = c.quiz.questions[2].correct
+	c.mu.Unlock()
+	s, _ = l.AnswerQuiz(s.Quiz.Token, correct)
+	time.Sleep(quizAutoAdvanceDelay + 100*time.Millisecond)
+	if got := l.Snapshot().Quiz; got.Index != 2 || got.Completed || !got.Answered {
+		t.Fatalf("last question completed without confirmation: %+v", got)
+	}
+	s, err = l.NextQuiz(s.Quiz.Token)
+	if err != nil || !s.Quiz.Completed || s.Quiz.Score != 2 {
+		t.Fatalf("manual finish failed: %+v %v", s.Quiz, err)
 	}
 }
 
 func TestQuizPendingAutoAdvanceCannotChangeNewSession(t *testing.T) {
-	for _, reset := range []string{"restart", "direction", "book", "refresh", "browse"} {
+	for _, reset := range []string{"restart", "book", "refresh", "browse"} {
 		t.Run(reset, func(t *testing.T) {
 			c := quizCore(t)
 			l := &Library{c}
@@ -196,8 +211,6 @@ func TestQuizPendingAutoAdvanceCannotChangeNewSession(t *testing.T) {
 			switch reset {
 			case "restart":
 				_, _ = l.StartQuiz(englishToChinese)
-			case "direction":
-				_, _ = l.StartQuiz(chineseToEnglish)
 			case "book":
 				_, _ = l.Select("list2.xlsx")
 			case "refresh":
@@ -254,7 +267,7 @@ func TestQuizManualNextInvalidatesPendingAutoAdvance(t *testing.T) {
 func TestInvalidDistractorsRemainBrowsable(t *testing.T) {
 	for _, choices := range [][]string{nil, {"a", "b"}, {"a", "b", " "}, {"a", "b", " a "}, {"x", "b", "c"}, {"a  b", "a b", "c"}} {
 		w := wordbook.Word{English: "word", Meaning: "x", ChineseDistractors: choices}
-		if _, _, ok := quizChoices(w, englishToChinese); ok {
+		if _, _, ok := quizChoices(w); ok {
 			t.Fatalf("invalid accepted: %v", choices)
 		}
 	}

@@ -44,11 +44,11 @@ type cell struct {
 	Inline richText `xml:"is"`
 }
 
-// WriteTemplate includes optional, author-supplied distractors for both quiz directions.
+// WriteTemplate includes optional, author-supplied Chinese quiz distractors.
 func WriteTemplate(filename string) error {
-	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3", "英文干扰项1", "英文干扰项2", "英文干扰项3"}
+	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3"}
 	var sheet strings.Builder
-	sheet.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="2" width="20" customWidth="1"/><col min="3" max="3" width="60" customWidth="1"/><col min="4" max="4" width="50" customWidth="1"/><col min="5" max="7" width="28" customWidth="1"/><col min="8" max="10" width="22" customWidth="1"/></cols><sheetData><row r="1">`)
+	sheet.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="2" width="20" customWidth="1"/><col min="3" max="3" width="60" customWidth="1"/><col min="4" max="4" width="50" customWidth="1"/><col min="5" max="7" width="28" customWidth="1"/></cols><sheetData><row r="1">`)
 	for i, header := range headers {
 		fmt.Fprintf(&sheet, `<c r="%c1" t="inlineStr"><is><t>`, 'A'+i)
 		if err := xml.EscapeText(&sheet, []byte(header)); err != nil {

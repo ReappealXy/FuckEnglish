@@ -2,7 +2,11 @@ $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $stage = Join-Path $root "build\windows-amd64"
-$installer = Join-Path $stage "FuckEnglish Setup 0.1.3 amd64.exe"
+$config = Get-Content -LiteralPath (Join-Path $root "mygo.config.ts") -Raw
+$versionMatch = [regex]::Match($config, 'version:\s*"([^"]+)"')
+if (-not $versionMatch.Success) { throw "Cannot read the application version." }
+$version = $versionMatch.Groups[1].Value
+$installer = Join-Path $stage "FuckEnglish Setup $version amd64.exe"
 $script = Join-Path $PSScriptRoot "windows-update-installer.nsi"
 
 $makensis = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source
@@ -17,7 +21,7 @@ if (-not $makensis) {
 }
 
 Remove-Item -LiteralPath $installer -Force -ErrorAction SilentlyContinue
-& $makensis "-DAPP_STAGE=$stage" "-DAPP_VERSION=0.1.3" "-DAPP_ID=io.github.reappealxy.fuckenglish.preview011" $script
+& $makensis "-DAPP_STAGE=$stage" "-DAPP_VERSION=$version" "-DAPP_ID=io.github.reappealxy.fuckenglish.preview011" $script
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $installer)) {
   throw "NSIS failed to create the in-place update installer."
 }

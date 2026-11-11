@@ -1,4 +1,5 @@
 import type { LibraryState } from "../mygo";
+import { useLayoutEffect, useRef } from "preact/hooks";
 
 type Props = {
   library: LibraryState | null;
@@ -30,8 +31,8 @@ export function LearningContent(props: Props) {
   if (testing && quiz) return <>
     <div class={`vocabulary-page quiz-page${study ? " study-quiz-page" : ""}`}>
       {quiz.completed ? <div class="quiz-message" role="status"><strong>本轮答对 {quiz.score} / {quiz.total} 题</strong><span>{quiz.skipped ? `${quiz.skipped} 个词因干扰项缺失或重复未参与本轮` : "本词表已全部测完"}</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.(quiz.direction)}>再测一轮</button><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
-      : quiz.total === 0 ? <div class="quiz-message" role="status"><strong>没有可测试的单词</strong><span>请在 Excel 中为每个词填写三个不同的{quiz.direction === "english-chinese" ? "中文" : "英文"}干扰项，且不能与正确答案相同，再刷新词表。</span><span>原有单词仍可正常浏览。</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
-      : <><div class={`quiz-heading${study ? " study-quiz-heading" : ""}`}><div class="quiz-prompt" tabIndex={0} aria-label="当前题目">{quiz.question}</div>{quiz.direction === "english-chinese" && quiz.phonetic && <div class="quiz-phonetic" aria-label="音标">{quiz.phonetic}</div>}</div><div class="quiz-options" role="group" aria-label="选择答案">{quiz.options.map((option, index) => {
+      : quiz.total === 0 ? <div class="quiz-message" role="status"><strong>没有可测试的单词</strong><span>请在 Excel 中为每个词填写三个不同的中文干扰项，且不能与正确答案相同，再刷新词表。</span><span>原有单词仍可正常浏览。</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
+      : <><QuizHeading question={quiz.question} phonetic={quiz.phonetic} study={study} /><div class="quiz-options" role="group" aria-label="选择答案">{quiz.options.map((option, index) => {
         const correct = quiz.answered && index === quiz.correct;
         const wrong = quiz.answered && index === quiz.choice && index !== quiz.correct;
         return <button type="button" key={`${quiz.token}-${index}`} class={`quiz-choice${correct ? " correct" : ""}${wrong ? " wrong" : ""}`} disabled={busy || quiz.answered} aria-label={`${option}${correct ? "，正确答案" : wrong ? "，回答错误" : ""}`} onClick={() => props.onAnswer?.(quiz.token, index)}><span class="quiz-choice-text" tabIndex={quiz.answered ? 0 : -1}>{option}</span>{(correct || wrong) && <span class="quiz-mark">{correct ? "正确" : "选错"}</span>}</button>;
@@ -56,4 +57,42 @@ export function LearningContent(props: Props) {
       <div class="word-pagination"><button type="button" title="上一页（←）" aria-keyshortcuts="ArrowLeft" disabled={busy || !library || library.page <= 0} onClick={() => props.onPage?.((library?.page ?? 0) - 1)}>上一页</button><span>{library?.pages ? `${library.page + 1} / ${library.pages}` : "0 / 0"}</span><button type="button" title="下一页（→）" aria-keyshortcuts="ArrowRight" disabled={busy || !library || library.page + 1 >= library.pages} onClick={() => props.onPage?.((library?.page ?? 0) + 1)}>下一页</button></div>
     </footer>
   </>;
+}
+
+function QuizHeading({ question, phonetic, study }: { question: string; phonetic?: string; study: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const heading = ref.current;
+    const page = heading?.parentElement;
+    if (!heading || !page) return;
+    let disposed = false;
+    const fit = () => {
+      if (disposed || !page.clientWidth || !page.clientHeight) return;
+      const style = getComputedStyle(page);
+      const height = page.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      // Keep room for all four answers. The study window uses fixed answer rows;
+      // the capsule divides its remaining space evenly between the two rows.
+      let budget = height * .45;
+      const options = page.querySelector<HTMLElement>(".quiz-options");
+      if (study && options) budget = Math.min(budget, height - options.offsetHeight - parseFloat(style.rowGap));
+      budget = Math.max(1, Math.floor(budget));
+      const scale = (value: number) => heading.style.setProperty("--quiz-heading-scale", String(value));
+      const fits = () => heading.scrollHeight <= budget && heading.scrollWidth <= heading.clientWidth;
+      scale(1);
+      if (fits()) return;
+      let low = 0, high = 1;
+      for (let i = 0; i < 14; i++) {
+        const mid = (low + high) / 2;
+        scale(mid);
+        if (fits()) low = mid; else high = mid;
+      }
+      scale(low);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(page);
+    void document.fonts.ready.then(fit);
+    return () => { disposed = true; observer.disconnect(); };
+  }, [question, phonetic, study]);
+  return <div ref={ref} class={`quiz-heading${study ? " study-quiz-heading" : ""}`}><div class="quiz-prompt" tabIndex={0} aria-label="当前题目">{question}</div>{phonetic && <div class="quiz-phonetic" aria-label="音标">{phonetic}</div>}</div>;
 }

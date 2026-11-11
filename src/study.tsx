@@ -77,7 +77,7 @@ export function StudyView() {
             {library?.books.map(book => <option key={book.name} value={book.name} disabled={!!book.error}>{book.name.replace(/\.xlsx$/i, "")} · {book.count} 词{book.error ? "（格式错误）" : ""}</option>)}
           </select>
           <select aria-label="学习模式" value={library?.quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={event => void action(() => event.currentTarget.value === "browse" ? Library.endQuiz() : Library.startQuiz(event.currentTarget.value))}>
-            <option value="browse">浏览</option><option value="english-chinese">英选中</option><option value="chinese-english">中选英</option>
+            <option value="browse">浏览</option><option value="english-chinese">英选中</option>
           </select>
           <span class="study-word-count">{library?.total ?? 0} 个单词</span>
         </div>

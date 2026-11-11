@@ -10,7 +10,6 @@ import (
 )
 
 const englishToChinese = "english-chinese"
-const chineseToEnglish = "chinese-english"
 
 const quizAutoAdvanceDelay = 450 * time.Millisecond
 
@@ -46,12 +45,9 @@ type quizSession struct {
 }
 
 // Only the authored distractors from this row are candidates. Missing or
-// duplicate choices disable this direction without blocking wordbook browsing.
-func quizChoices(w wordbook.Word, direction string) (string, []string, bool) {
+// duplicate choices disable the quiz without blocking wordbook browsing.
+func quizChoices(w wordbook.Word) (string, []string, bool) {
 	prompt, answer, distractors := w.English, w.Meaning, w.ChineseDistractors
-	if direction == chineseToEnglish {
-		prompt, answer, distractors = w.Meaning, w.English, w.EnglishDistractors
-	}
 	if strings.TrimSpace(prompt) == "" || strings.TrimSpace(answer) == "" || len(distractors) != 3 {
 		return "", nil, false
 	}
@@ -70,20 +66,17 @@ func quizChoices(w wordbook.Word, direction string) (string, []string, bool) {
 }
 
 func (c *Core) startQuizLocked(direction string) error {
-	if direction != englishToChinese && direction != chineseToEnglish {
-		return fmt.Errorf("请选择英选中或中选英")
+	if direction != englishToChinese {
+		return fmt.Errorf("请选择英选中")
 	}
 	q := quizSession{direction: direction, id: rand.Uint64(), choice: -1}
 	for _, w := range c.words[c.cfg.Selected] {
-		prompt, choices, ok := quizChoices(w, direction)
+		prompt, choices, ok := quizChoices(w)
 		if !ok {
 			q.skipped++
 			continue
 		}
-		question := quizQuestion{prompt: prompt, options: make([]string, 4)}
-		if direction == englishToChinese {
-			question.phonetic = strings.TrimSpace(w.Phonetic)
-		}
+		question := quizQuestion{prompt: prompt, phonetic: strings.TrimSpace(w.Phonetic), options: make([]string, 4)}
 		for pos, source := range rand.Perm(4) {
 			question.options[pos] = choices[source]
 			if source == 0 {

@@ -52,7 +52,7 @@ export function IslandSurface(props: Props) {
             setBookPickerOpen(!bookPickerOpen);
           }}><span>{selectedBook ? `${selectedBook.name.replace(/\.xlsx$/i, "")} · ${selectedBook.count} 词` : "暂无词表"}</span><Glyph path={bookPickerOpen ? "m6 15 6-6 6 6" : "m6 9 6 6 6-6"} /></button>
           <select class="capsule-mode" aria-label="学习模式" value={quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={e => { setBookPickerOpen(false); props.onMode?.(e.currentTarget.value); }}>
-            <option value="browse">浏览</option><option value="english-chinese">英选中</option><option value="chinese-english">中选英</option>
+            <option value="browse">浏览</option><option value="english-chinese">英选中</option>
           </select>
           <span class="wordbook-count">{library?.total ?? 0} 个单词</span>
           <div class="island-tools">

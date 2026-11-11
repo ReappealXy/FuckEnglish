@@ -11,9 +11,7 @@ test("arrow paging keeps the first and last page boundaries", () => {
 });
 
 test("paging ignores quizzes, unavailable wordbooks, and invalid directions", () => {
-  for (const direction of ["english-chinese", "chinese-english"]) {
-    expect(browsePageTarget({ ...state, quiz: { direction } }, 1)).toBeNull();
-  }
+  expect(browsePageTarget({ ...state, quiz: { direction: "english-chinese" } }, 1)).toBeNull();
   expect(browsePageTarget(null, 1)).toBeNull();
   expect(browsePageTarget({ ...state, selected: "" }, 1)).toBeNull();
   expect(browsePageTarget({ ...state, pages: 0 }, 1)).toBeNull();

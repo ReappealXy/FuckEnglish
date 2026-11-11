@@ -65,9 +65,9 @@ func TestWriteTemplate(t *testing.T) {
 	if err := xml.Unmarshal([]byte(sheet), &parsed); err != nil {
 		t.Fatal(err)
 	}
-	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3", "英文干扰项1", "英文干扰项2", "英文干扰项3"}
+	headers := []string{"英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3"}
 	if len(parsed.Rows) != 1 || len(parsed.Rows[0].Cells) != len(headers) {
-		t.Fatalf("expected an empty template with exactly ten headers: %s", sheet)
+		t.Fatalf("expected an empty template with exactly seven headers: %s", sheet)
 	}
 	for i, header := range headers {
 		c := parsed.Rows[0].Cells[i]

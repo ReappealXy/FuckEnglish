@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 )
 
@@ -81,5 +82,71 @@ func TestSaveFailureRollsBackSelection(t *testing.T) {
 	}
 	if l.Snapshot().Selected != before.Selected {
 		t.Fatal("failed save changed selected book")
+	}
+}
+
+func TestNaturalBookNameOrder(t *testing.T) {
+	names := []string{
+		"list10.xlsx",
+		"list00000000000000000000000000000000000000000000000001.xlsx",
+		"list2.xlsx",
+		"LIST1.xlsx",
+		"list9.xlsx",
+		"list01.xlsx",
+		"list1.xlsx",
+	}
+	sort.Slice(names, func(i, j int) bool { return naturalNameLess(names[i], names[j]) })
+	want := []string{
+		"LIST1.xlsx",
+		"list1.xlsx",
+		"list01.xlsx",
+		"list00000000000000000000000000000000000000000000000001.xlsx",
+		"list2.xlsx",
+		"list9.xlsx",
+		"list10.xlsx",
+	}
+	for i := range want {
+		if names[i] != want[i] {
+			t.Fatalf("natural order = %v, want %v", names, want)
+		}
+	}
+	for _, pair := range [][2]string{
+		{"list99999999999999999999999999999999999999.xlsx", "list100000000000000000000000000000000000000.xlsx"},
+		{"list2-part9.xlsx", "list2-part10.xlsx"},
+		{"词表2.xlsx", "词表10.xlsx"},
+		{"list0.xlsx", "list00.xlsx"},
+		{"list.xlsx", "list2.xlsx"},
+	} {
+		if !naturalNameLess(pair[0], pair[1]) || naturalNameLess(pair[1], pair[0]) {
+			t.Errorf("expected %q before %q", pair[0], pair[1])
+		}
+	}
+}
+
+func TestScanBookNaturalOrder(t *testing.T) {
+	folder := t.TempDir()
+	data, err := examples.ReadFile("words/list1.xlsx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"list10.xlsx", "list2.xlsx", "list1.xlsx", "list9.xlsx"} {
+		if err := os.WriteFile(filepath.Join(folder, name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c := &Core{cfg: config{Folder: folder, Selected: "list9.xlsx", Pages: map[string]int{"list9.xlsx": 3}}}
+	c.scanLocked()
+	want := []string{"list1.xlsx", "list2.xlsx", "list9.xlsx", "list10.xlsx"}
+	if len(c.books) != len(want) {
+		t.Fatalf("found %d books, want %d", len(c.books), len(want))
+	}
+	for i := range want {
+		if c.books[i].Name != want[i] {
+			t.Fatalf("scanned book order = %v, want %v", c.books, want)
+		}
+	}
+	state := c.snapshotLocked()
+	if state.Selected != "list9.xlsx" || state.Page != 3 || len(state.Words) != pageSize {
+		t.Fatalf("sorting changed selection or resume page: %+v", state)
 	}
 }

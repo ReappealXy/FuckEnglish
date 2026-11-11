@@ -1,7 +1,8 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { Settings, LibraryState } from "../mygo";
 import { islandThemeStyle } from "../lib/island-theme";
 import { LearningContent } from "./learning-content";
+import { paginateBooks, selectedBookPage } from "../lib/book-pagination";
 
 type Props = {
   settings: Partial<Settings> | null; library: LibraryState | null; expanded: boolean; error?: string; preview?: boolean;
@@ -14,6 +15,16 @@ type Props = {
 
 export function IslandSurface(props: Props) {
   const { settings, library, expanded, preview, busy } = props;
+  const [bookPickerOpen, setBookPickerOpen] = useState(false);
+  const [bookPage, setBookPage] = useState(0);
+  const bookTrigger = useRef<HTMLButtonElement>(null);
+  const books = library?.books ?? [];
+  const bookList = paginateBooks(books, bookPage);
+  const selectedBook = books.find(book => book.name === library?.selected);
+  const pickerId = preview ? "preview-book-picker" : "island-book-picker";
+  useEffect(() => { if (!expanded) setBookPickerOpen(false); }, [expanded]);
+  useEffect(() => { setBookPickerOpen(false); }, [library?.folder, library?.selected]);
+  useEffect(() => { setBookPage(page => paginateBooks(books, page).page); }, [books.length]);
   const [systemDark, setSystemDark] = useState(() => matchMedia("(prefers-color-scheme: dark)").matches);
   useEffect(() => { const media = matchMedia("(prefers-color-scheme: dark)"); const update = () => setSystemDark(media.matches); media.addEventListener("change", update); return () => media.removeEventListener("change", update); }, []);
   const shape = settings?.islandStyle === "notch" || settings?.islandStyle === "line" ? settings.islandStyle : "capsule";
@@ -29,13 +40,15 @@ export function IslandSurface(props: Props) {
       <button type="button" class="island-compact" onClick={props.onExpand} disabled={preview || expanded} tabIndex={expanded ? -1 : 0} aria-label="展开单词胶囊" aria-expanded={expanded}>
         {shape !== "line" && <span class={current ? "compact-word" : "compact-empty"}>{current?.english ?? (library ? "选择一个词表" : "正在读取词表…")}</span>}
       </button>
-      <section class="island-expanded-content" aria-label="单词词表" aria-hidden={!expanded} inert={!expanded}>
+      <section class="island-expanded-content" aria-label="单词词表" aria-hidden={!expanded} inert={!expanded} onKeyDown={event => {
+        if (event.key === "Escape" && bookPickerOpen) { event.preventDefault(); event.stopPropagation(); setBookPickerOpen(false); bookTrigger.current?.focus(); }
+      }}>
         <header class="island-toolbar">
-          <select class="wordbook-select" aria-label="切换 Excel 词表" value={library?.selected ?? ""} disabled={busy || !library?.books.some(b => !b.error)} onChange={e => props.onSelect?.(e.currentTarget.value)}>
-            {!library?.selected && <option value="">暂无词表</option>}
-            {library?.books.map(book => <option key={book.name} value={book.name} disabled={!!book.error}>{book.name.replace(/\.xlsx$/i, "")} · {book.count} 词{book.error ? "（格式错误）" : ""}</option>)}
-          </select>
-          <select class="capsule-mode" aria-label="学习模式" value={quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={e => props.onMode?.(e.currentTarget.value)}>
+          <button ref={bookTrigger} type="button" class="wordbook-select" data-book-picker aria-label="切换 Excel 词表" aria-haspopup="dialog" aria-expanded={bookPickerOpen} aria-controls={pickerId} disabled={busy || !books.length} onClick={() => {
+            if (!bookPickerOpen) setBookPage(selectedBookPage(books, library?.selected ?? ""));
+            setBookPickerOpen(!bookPickerOpen);
+          }}><span>{selectedBook ? `${selectedBook.name.replace(/\.xlsx$/i, "")} · ${selectedBook.count} 词` : "暂无词表"}</span><Glyph path={bookPickerOpen ? "m6 15 6-6 6 6" : "m6 9 6 6 6-6"} /></button>
+          <select class="capsule-mode" aria-label="学习模式" value={quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={e => { setBookPickerOpen(false); props.onMode?.(e.currentTarget.value); }}>
             <option value="browse">浏览</option><option value="english-chinese">英选中</option><option value="chinese-english">中选英</option>
           </select>
           <span class="wordbook-count">{library?.total ?? 0} 个单词</span>
@@ -45,7 +58,12 @@ export function IslandSurface(props: Props) {
             <button type="button" aria-label="收起胶囊" disabled={preview} onClick={props.onCollapse}><Glyph path="m6 15 6-6 6 6" /></button>
           </div>
         </header>
-        <LearningContent library={library} error={error} busy={busy} onSettings={props.onSettings} onFocus={props.onFocus} onOrder={props.onOrder} onPage={props.onPage} onMode={props.onMode} onAnswer={props.onAnswer} onNext={props.onNext} />
+        {bookPickerOpen ? <div id={pickerId} class="book-picker" role="dialog" aria-label="选择词表" data-book-picker>
+          <div class="book-picker-list">{bookList.books.map(book => <button key={book.name} type="button" class={`book-picker-item${book.name === library?.selected ? " selected" : ""}`} aria-current={book.name === library?.selected ? "true" : undefined} disabled={busy || !!book.error} title={book.error || book.name} onClick={() => {
+            setBookPickerOpen(false); bookTrigger.current?.focus(); props.onSelect?.(book.name);
+          }}><span>{book.name.replace(/\.xlsx$/i, "")}</span><small>{book.error ? "格式错误" : `${book.count} 词${book.name === library?.selected ? " · 使用中" : ""}`}</small></button>)}</div>
+          <nav class="book-picker-pagination" aria-label="胶囊词表分页"><span>共 {books.length} 份</span><button type="button" disabled={busy || bookList.page === 0} onClick={() => setBookPage(bookList.page - 1)}>上一页</button><span>{bookList.pages ? bookList.page + 1 : 0} / {bookList.pages}</span><button type="button" disabled={busy || bookList.page + 1 >= bookList.pages} onClick={() => setBookPage(bookList.page + 1)}>下一页</button></nav>
+        </div> : <LearningContent library={library} error={error} busy={busy} onSettings={props.onSettings} onFocus={props.onFocus} onOrder={props.onOrder} onPage={props.onPage} onMode={props.onMode} onAnswer={props.onAnswer} onNext={props.onNext} />}
       </section>
     </div>
   </div>;

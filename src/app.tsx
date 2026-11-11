@@ -3,6 +3,7 @@ import { WindowTitlebar } from "./components/window-titlebar";
 import { events, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { IslandSurface } from "./components/island-surface";
 import { islandTheme, islandThemes } from "./lib/island-theme";
+import { paginateBooks, selectedBookPage } from "./lib/book-pagination";
 import "./island.css";
 import "./pages/island-settings.css";
 
@@ -18,7 +19,12 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
+  const [bookPage, setBookPage] = useState(0);
   const savedRef = useRef<Settings | null>(null);
+  const books = library?.books ?? [];
+  const bookList = paginateBooks(books, bookPage);
+  useEffect(() => { setBookPage(selectedBookPage(books, library?.selected ?? "")); }, [library?.folder, library?.selected]);
+  useEffect(() => { setBookPage(page => paginateBooks(books, page).page); }, [books.length]);
   useEffect(() => {
     let active = true, gotLibrary = false, gotSettings = false;
     const offLibrary = events.library.on(s => { gotLibrary = true; setLibrary(s); });
@@ -47,9 +53,10 @@ export function App() {
           {tab === "词表文件夹" && <>
             <p class="section-description">将 .xlsx 词表放入同一个文件夹，在胶囊顶部选择词表。添加或修改文件后点击刷新。</p>
             <label class="folder-label" for="word-folder">Excel 文件夹</label><div class="folder-controls"><input id="word-folder" value={folder} onInput={e => setFolder(e.currentTarget.value)} spellcheck={false}/><button disabled={busy} onClick={() => void run(async () => { const path = await Library.pickFolder(); if (path) setFolder(path); })}>浏览…</button><button class="primary" disabled={busy || !folder.trim() || folder === library?.folder} onClick={() => void run(async () => { const s=await Library.setFolder(folder.trim()); setLibrary(s); setFolder(s.folder); }, "词表文件夹已切换")}>应用文件夹</button></div>
-            <div class="library-toolbar"><span>{library?.books.length ?? 0} 份 Excel · 每页 5 词</span><div><button disabled={busy} onClick={() => void run(() => Library.openFolder())}>打开文件夹</button><button disabled={busy} onClick={() => void run(() => Library.refresh(), "词表已刷新")}>刷新词表</button></div></div>
+            <div class="library-toolbar"><span>{books.length} 份 Excel · 每页 5 份词表</span><div><button disabled={busy} onClick={() => void run(() => Library.openFolder())}>打开文件夹</button><button disabled={busy} onClick={() => void run(() => Library.refresh(), "词表已刷新")}>刷新词表</button></div></div>
             {library?.error && <p class="feedback error" role="alert">{library.error}</p>}
-            <div class="book-list">{library?.books.map(book => <button class={`book-item${book.name === library.selected ? " selected" : ""}`} disabled={busy || !!book.error} onClick={() => void run(() => Library.select(book.name))}><span><strong>{book.name}</strong>{book.error && <small>{book.error}</small>}</span><span>{book.error ? "无法读取" : `${book.count} 词${book.name === library.selected ? " · 使用中" : ""}`}</span></button>)}{library && library.books.length === 0 && <p class="empty-books">这里还没有 .xlsx 词表。把文件放入上方文件夹，再点击“刷新词表”。</p>}</div>
+            <div class="book-list">{bookList.books.map(book => <button key={book.name} class={`book-item${book.name === library?.selected ? " selected" : ""}`} disabled={busy || !!book.error} onClick={() => void run(() => Library.select(book.name))}><span><strong>{book.name}</strong>{book.error && <small>{book.error}</small>}</span><span>{book.error ? "无法读取" : `${book.count} 词${book.name === library?.selected ? " · 使用中" : ""}`}</span></button>)}{library && books.length === 0 && <p class="empty-books">这里还没有 .xlsx 词表。把文件放入上方文件夹，再点击“刷新词表”。</p>}</div>
+            {bookList.pages > 0 && <nav class="book-list-pagination" aria-label="设置词表分页"><span>共 {books.length} 份</span><button type="button" disabled={busy || bookList.page === 0} onClick={() => setBookPage(bookList.page - 1)}>上一页</button><span>{bookList.page + 1} / {bookList.pages}</span><button type="button" disabled={busy || bookList.page + 1 >= bookList.pages} onClick={() => setBookPage(bookList.page + 1)}>下一页</button></nav>}
             <p class="deck-settings-note">读取第一个工作表，表头使用：英文单词、音标、英文单词释义。第四列短语暂不展示。较长释义可在单元格内滚动阅读；点击英文可将该词显示在收起胶囊中。切换词表会记住各自页码。</p>
           </>}
           {tab === "单词模板" && <div class="word-template"><p>下载十列 Excel 模板，按列填写后，保存到词表文件夹并刷新词表即可浏览。</p><div class="word-template-columns">{["英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3", "英文干扰项1", "英文干扰项2", "英文干扰项3"].map(label => <span key={label}>{label}</span>)}</div><p>中文干扰项用于“看英文选中文”，英文干扰项用于“看中文选英文”。每组填写三个不同的错误选项，不要填写正确答案。</p><p>缺少该方向三个干扰项，或选项重复的单词仍可浏览，但不能参与该方向小测。在胶囊顶部选择“英选中”或“中选英”开始测试。</p><button class="word-template-save" disabled={busy} onClick={() => void (async () => { setBusy(true); setMessage(""); setFailed(false); try { const path = await Library.saveTemplate(); if (path) setMessage(`模板已保存：${path}`); } catch (e) { setMessage(String(e)); setFailed(true); } finally { setBusy(false); } })()}>保存 Excel 模板…</button></div>}

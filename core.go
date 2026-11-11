@@ -181,7 +181,7 @@ func (c *Core) scanLocked() {
 		}
 		c.books = append(c.books, book)
 	}
-	sort.Slice(c.books, func(i, j int) bool { return c.books[i].Name < c.books[j].Name })
+	sort.Slice(c.books, func(i, j int) bool { return naturalNameLess(c.books[i].Name, c.books[j].Name) })
 	if _, ok := c.words[c.cfg.Selected]; !ok {
 		c.cfg.Selected = ""
 		for _, b := range c.books {
@@ -193,6 +193,58 @@ func (c *Core) scanLocked() {
 	}
 	c.focus = 0
 }
+
+func naturalNameLess(a, b string) bool {
+	ar, br := []rune(strings.ToLower(a)), []rune(strings.ToLower(b))
+	for i, j := 0, 0; i < len(ar) && j < len(br); {
+		if isASCIIDigit(ar[i]) && isASCIIDigit(br[j]) {
+			aEnd, bEnd := i, j
+			for aEnd < len(ar) && isASCIIDigit(ar[aEnd]) {
+				aEnd++
+			}
+			for bEnd < len(br) && isASCIIDigit(br[bEnd]) {
+				bEnd++
+			}
+
+			aSignificant, bSignificant := i, j
+			for aSignificant < aEnd && ar[aSignificant] == '0' {
+				aSignificant++
+			}
+			for bSignificant < bEnd && br[bSignificant] == '0' {
+				bSignificant++
+			}
+			aDigits, bDigits := aEnd-aSignificant, bEnd-bSignificant
+			if aDigits != bDigits {
+				return aDigits < bDigits
+			}
+			for offset := 0; offset < aDigits; offset++ {
+				if ar[aSignificant+offset] != br[bSignificant+offset] {
+					return ar[aSignificant+offset] < br[bSignificant+offset]
+				}
+			}
+
+			// Equal numeric runs use fewer leading zeroes first.
+			aRun, bRun := aEnd-i, bEnd-j
+			if aRun != bRun {
+				return aRun < bRun
+			}
+			i, j = aEnd, bEnd
+			continue
+		}
+		if ar[i] != br[j] {
+			return ar[i] < br[j]
+		}
+		i++
+		j++
+	}
+	if len(ar) != len(br) {
+		return len(ar) < len(br)
+	}
+	return a < b
+}
+
+func isASCIIDigit(r rune) bool { return r >= '0' && r <= '9' }
+
 func (c *Core) snapshotLocked() LibraryState {
 	words := c.words[c.cfg.Selected]
 	pages := (len(words) + pageSize - 1) / pageSize

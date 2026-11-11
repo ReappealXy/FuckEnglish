@@ -60,8 +60,20 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-status.connected i { background: var(--island-good); }
 .island-preview-stage { user-select: none; }
 .compact-word { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; }
-.wordbook-select { min-width: 0; max-width: 230px; width: 0; flex: 1; height: 25px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--island-text); background: var(--island-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
-.wordbook-select option { background: var(--island-surface); color: var(--island-text); }
+.island-toolbar .wordbook-select { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; max-width: 230px; width: 0; flex: 1; height: 25px; padding: 0 7px; border: 0; border-radius: 6px; color: var(--island-text); background: var(--island-fill); font: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+.wordbook-select > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wordbook-select > svg { flex: 0 0 14px; }
+.book-picker { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding: 0 10px 7px; }
+.book-picker-list { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 2px; }
+.island-stage .book-picker-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; min-height: 0; padding: 2px 8px; border: 0; border-radius: 5px; color: var(--island-text); background: transparent; font-size: 11px; text-align: left; }
+.book-picker-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-picker-item > small { flex-shrink: 0; color: var(--island-secondary); font-size: 10px; }
+.island-stage .book-picker-item.selected { background: var(--island-selected); }
+.island-stage .book-picker-item:hover:not(:disabled) { background: var(--island-hover); }
+.book-picker-pagination { flex: 0 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: var(--island-secondary); font-size: 10.5px; }
+.book-picker-pagination > span:first-child { margin-right: auto; padding-left: 8px; }
+.island-stage .book-picker-pagination button { padding: 3px 7px; border: 0; border-radius: 4px; color: var(--island-text); background: var(--island-fill); font-size: 10.5px; }
+.island-stage .book-picker-pagination button:hover:not(:disabled) { background: var(--island-hover); }
 .wordbook-count { margin-left: auto; color: var(--island-secondary); font-size: 10.5px; flex-shrink: 0; }
 .vocabulary-page { flex: 1; min-height: 0; padding: 0 18px; }
 .vocabulary-table { display: flex; flex-direction: column; height: 100%; min-height: 0; }
@@ -98,11 +110,13 @@ html.island-window, .island-window body, .island-window #app { margin: 0; width:
 .island-stage .browse-order button[aria-pressed="true"] { color: var(--island-text); background: var(--island-selected); }
 .island-stage .browse-order button:hover:not(:disabled) { color: var(--island-text); background: var(--island-hover); }
 .quiz-page { display: flex; flex-direction: column; gap: 6px; padding-top: 2px; padding-bottom: 4px; }
+.quiz-heading { flex: 0 0 auto; min-width: 0; text-align: center; }
 .quiz-prompt { flex: 0 1 auto; min-height: 18px; max-height: 42px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; font-size: 14px; font-weight: 600; line-height: 20px; }
-.quiz-options { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 5px; }
-.island-stage .quiz-choice { display: flex; gap: 6px; align-items: center; min-height: 0; min-width: 0; padding: 5px 7px; border: 1px solid var(--island-divider); border-radius: 6px; background: var(--island-fill); color: var(--island-text); font-size: 11px; text-align: left; }
-.island-stage .quiz-choice:hover:not(:disabled) { background: var(--island-hover); border-color: var(--island-accent); }
-.quiz-letter { flex: 0 0 12px; color: var(--island-secondary); }
+.island-surface .quiz-prompt { max-height: 48px; font-size: 22px; font-weight: 500; line-height: 24px; }
+.island-surface .quiz-phonetic { max-height: 28px; margin-top: 2px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; color: var(--island-secondary); font-family: "Segoe UI", "Arial", sans-serif; font-size: 11px; line-height: 14px; }
+.quiz-options { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 6px 18px; }
+.island-stage .quiz-choice { display: flex; gap: 6px; align-items: center; min-height: 0; min-width: 0; padding: 3px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--island-text); font-size: 12px; text-align: left; }
+.island-stage .quiz-choice:hover:not(:disabled), .island-stage .quiz-choice:focus-visible { background: var(--island-hover); border-color: var(--island-divider); }
 .quiz-choice-text { flex: 1; min-width: 0; max-height: 100%; line-height: 15px; overflow: auto; scrollbar-width: thin; overflow-wrap: anywhere; white-space: pre-wrap; }
 .quiz-mark { flex-shrink: 0; font-size: 9px; }
 .island-stage .quiz-choice:disabled { opacity: 1; }

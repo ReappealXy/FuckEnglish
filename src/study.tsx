@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { currentWindow, isMyGo } from "mygo-runtime";
 import { events, Island, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { browsePageTarget, isPagingControl } from "./lib/island-pagination";
 import { LearningContent } from "./components/learning-content";
@@ -12,7 +13,22 @@ export function StudyView() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const requestBusy = useRef(false);
+
+  useEffect(() => {
+    if (!isMyGo()) return;
+    let revision = 0;
+    const update = () => {
+      const request = ++revision;
+      void currentWindow.isMaximized().then(value => {
+        if (request === revision) setMaximized(value);
+      }).catch(() => {});
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => { revision++; window.removeEventListener("resize", update); };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -67,7 +83,7 @@ export function StudyView() {
     return () => window.removeEventListener("keydown", keydown);
   });
 
-  return <div class="study-window deck-palette" style={transparencyStyle(settings)}>
+  return <div class={`study-window deck-palette${maximized ? " maximized" : ""}`} style={transparencyStyle(settings)}>
     <WindowTitlebar subtitle="背单词" />
     <main class="study-main">
       <div class="study-toolbar">

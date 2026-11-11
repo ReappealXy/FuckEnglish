@@ -1,6 +1,10 @@
 package main
 
-import "github.com/egoist/mygo"
+import (
+	"log"
+
+	"github.com/egoist/mygo"
+)
 
 // These window references and mode flags belong to the MyGo main thread.
 var studyWin *mygo.Window
@@ -33,11 +37,15 @@ func showStudyWindow(core *Core) {
 		Width: 900, Height: 640, MinWidth: 560, MinHeight: 420,
 		TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 48,
 		Transparent: true, BackgroundColor: "#00000000", Vibrancy: mygo.VibrancyHUD,
-		Hidden: true, StateKey: "study",
+		Hidden: true, DisableShadow: true, StateKey: "study",
 	})
 	// Keep a compositor-backed host so transparent CSS reveals the desktop,
 	// then remove the system material to leave opacity under our two controls.
 	w.SetVibrancy(mygo.VibrancyNone)
+	w.SetHasShadow(false)
+	if err := configureStudyFrame(w); err != nil {
+		log.Printf("study window frame: %v", err)
+	}
 	studyWin, studyReady = w, false
 	w.OnReadyToShow(func() {
 		studyReady = true

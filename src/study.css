@@ -2,7 +2,12 @@
 .study-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 16px 20px 18px; }
 .study-toolbar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .study-selectors { flex: 1; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 118px auto; align-items: center; gap: 8px; }
-.study-selectors select { min-width: 0; width: 100%; height: 34px; padding: 0 9px; border: 1px solid var(--deck-paint-border); border-radius: 5px; background: var(--deck-paint-selected); color: var(--deck-text); font: inherit; }
+.study-selectors { --learning-select-surface: var(--deck-selected); --learning-select-border: var(--deck-paint-border); --learning-select-hover: var(--deck-paint-inset); --learning-select-selected: var(--deck-paint-inset); --learning-select-text: var(--deck-text); }
+.study-selectors .learning-select-trigger { min-width: 0; width: 100%; height: 34px; padding: 0 9px; font: inherit; }
+.study-pin { display: grid; place-items: center; width: 36px; height: 34px; border: 0; border-radius: 5px; background: transparent; color: var(--deck-secondary); -webkit-app-region: no-drag; }
+.study-pin:hover { background: var(--deck-paint-inset); }
+.study-pin[aria-pressed="true"] { color: var(--deck-accent); background: var(--deck-paint-inset); }
+.study-pin svg { width: 18px; height: 18px; opacity: var(--learning-text-opacity, 1); }
 .study-word-count { color: var(--deck-secondary); font-size: 12px; white-space: nowrap; }
 .study-actions { display: flex; flex: 0 0 auto; gap: 7px; }
 .study-actions button { min-height: 34px; padding: 0 11px; border: 1px solid var(--deck-paint-border); border-radius: 5px; background: var(--deck-paint-selected); color: var(--deck-text); font-size: 12px; white-space: nowrap; }
@@ -53,7 +58,7 @@
   .study-main { padding: 12px 14px 14px; gap: 9px; }
   .study-toolbar { gap: 8px; }
   .study-selectors { grid-template-columns: minmax(0, 1fr) 100px auto; gap: 6px; }
-  .study-selectors select { padding-inline: 6px; font-size: 11px; }
+  .study-selectors .learning-select-trigger { padding-inline: 6px; font-size: 11px; }
   .study-word-count { font-size: 10px; }
   .study-actions { gap: 5px; }
   .study-actions button { padding-inline: 8px; font-size: 11px; }

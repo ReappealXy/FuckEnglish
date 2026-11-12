@@ -4,6 +4,7 @@ import { islandThemeStyle } from "../lib/island-theme";
 import { LearningContent } from "./learning-content";
 import { paginateBooks, selectedBookPage } from "../lib/book-pagination";
 import { transparencyStyle } from "../lib/learning-appearance";
+import { LearningSelect } from "./learning-select";
 
 type Props = {
   settings: Partial<Settings> | null; library: LibraryState | null; expanded: boolean; error?: string; preview?: boolean;
@@ -12,11 +13,13 @@ type Props = {
   onSelect?: (name: string) => void; onPage?: (page: number) => void; onFocus?: (index: number) => void; busy?: boolean;
   onMode?: (mode: string) => void; onOrder?: (order: string) => void;
   onAnswer?: (token: string, choice: number) => void; onNext?: (token: string) => void;
+  onControlsOpen?: (open: boolean) => void;
 };
 
 export function IslandSurface(props: Props) {
   const { settings, library, expanded, preview, busy } = props;
   const [bookPickerOpen, setBookPickerOpen] = useState(false);
+  const [modePickerOpen, setModePickerOpen] = useState(false);
   const [bookPage, setBookPage] = useState(0);
   const bookTrigger = useRef<HTMLButtonElement>(null);
   const books = library?.books ?? [];
@@ -24,6 +27,7 @@ export function IslandSurface(props: Props) {
   const selectedBook = books.find(book => book.name === library?.selected);
   const pickerId = preview ? "preview-book-picker" : "island-book-picker";
   useEffect(() => { if (!expanded) setBookPickerOpen(false); }, [expanded]);
+  useEffect(() => { props.onControlsOpen?.(expanded && (bookPickerOpen || modePickerOpen)); }, [expanded, bookPickerOpen, modePickerOpen]);
   useEffect(() => { setBookPickerOpen(false); }, [library?.folder, library?.selected]);
   useEffect(() => { setBookPage(page => paginateBooks(books, page).page); }, [books.length]);
   const [systemDark, setSystemDark] = useState(() => matchMedia("(prefers-color-scheme: dark)").matches);
@@ -51,9 +55,7 @@ export function IslandSurface(props: Props) {
             if (!bookPickerOpen) setBookPage(selectedBookPage(books, library?.selected ?? ""));
             setBookPickerOpen(!bookPickerOpen);
           }}><span>{selectedBook ? `${selectedBook.name.replace(/\.xlsx$/i, "")} · ${selectedBook.count} 词` : "暂无词表"}</span><Glyph path={bookPickerOpen ? "m6 15 6-6 6 6" : "m6 9 6 6 6-6"} /></button>
-          <select class="capsule-mode" aria-label="学习模式" value={quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={e => { setBookPickerOpen(false); props.onMode?.(e.currentTarget.value); }}>
-            <option value="browse">浏览</option><option value="english-chinese">英选中</option>
-          </select>
+          <LearningSelect id={preview ? "preview-mode" : "capsule-mode"} className="capsule-mode" label="学习模式" value={quiz?.direction || "browse"} disabled={!expanded || busy || !library?.selected} options={[{value:"browse",label:"浏览"},{value:"english-chinese",label:"英选中"}]} onOpenChange={open => { setModePickerOpen(open); if (open) setBookPickerOpen(false); }} onChange={value => { setBookPickerOpen(false); props.onMode?.(value); }} />
           <span class="wordbook-count">{library?.total ?? 0} 个单词</span>
           <div class="island-tools">
             {!preview && <button type="button" class="island-study-button" aria-label="切换背词模式" title="切换背词模式" onClick={props.onStudy}>背词</button>}

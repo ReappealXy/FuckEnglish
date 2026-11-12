@@ -67,6 +67,7 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 						inside = false
 						islandPointerInside = false
 						updateIslandPagingShortcuts()
+						updateIslandQuizShortcuts()
 						return
 					}
 					var point [2]int32
@@ -83,6 +84,7 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 					hit := r.valid() && r.contains(x, y)
 					islandPointerInside = hit
 					updateIslandPagingShortcuts()
+					updateIslandQuizShortcuts()
 					if ignoring == hit {
 						ignoring = !hit
 						w.SetIgnoreMouseEvents(ignoring)

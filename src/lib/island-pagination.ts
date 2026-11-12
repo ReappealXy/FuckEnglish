@@ -7,5 +7,5 @@ export function browsePageTarget(library: BrowseState | null, direction: number)
 }
 
 export function isPagingControl(element: Element | null): boolean {
-  return !!element?.closest('select, input, textarea, [contenteditable]:not([contenteditable="false"]), [role="combobox"], [data-book-picker]');
+  return !!element?.closest('select, input, textarea, [contenteditable]:not([contenteditable="false"]), [role="combobox"], [role="listbox"], [data-book-picker], [data-learning-select]');
 }

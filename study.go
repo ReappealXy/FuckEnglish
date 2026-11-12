@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"sync/atomic"
 
 	"github.com/egoist/mygo"
 )
@@ -10,6 +13,25 @@ import (
 var studyWin *mygo.Window
 var studyReady bool
 var studyActive bool
+var studyAlwaysOnTop atomic.Bool
+
+func (i *Island) GetStudyAlwaysOnTop(ctx context.Context) bool {
+	w := mygo.CallerWindow(ctx)
+	if w == nil || w.IsDestroyed() {
+		return studyAlwaysOnTop.Load()
+	}
+	return w.IsAlwaysOnTop()
+}
+
+func (i *Island) SetStudyAlwaysOnTop(ctx context.Context, enabled bool) error {
+	w := mygo.CallerWindow(ctx)
+	if w == nil || w.IsDestroyed() {
+		return fmt.Errorf("背词窗口当前不可用")
+	}
+	w.SetAlwaysOnTop(enabled)
+	studyAlwaysOnTop.Store(enabled)
+	return nil
+}
 
 func (i *Island) OpenStudy() {
 	mygo.RunOnMain(func() { showStudyWindow(i.core) })
@@ -38,6 +60,7 @@ func showStudyWindow(core *Core) {
 		TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 48,
 		Transparent: true, BackgroundColor: "#00000000", Vibrancy: mygo.VibrancyHUD,
 		Hidden: true, DisableShadow: true, StateKey: "study",
+		AlwaysOnTop: studyAlwaysOnTop.Load(), SkipTaskbar: true,
 	})
 	// Keep a compositor-backed host so transparent CSS reveals the desktop,
 	// then remove the system material to leave opacity under our two controls.
@@ -45,6 +68,9 @@ func showStudyWindow(core *Core) {
 	w.SetHasShadow(false)
 	if err := configureStudyFrame(w); err != nil {
 		log.Printf("study window frame: %v", err)
+	}
+	if err := configureStudyTaskbar(w); err != nil {
+		log.Printf("study window taskbar: %v", err)
 	}
 	studyWin, studyReady = w, false
 	w.OnReadyToShow(func() {

@@ -139,6 +139,9 @@ export const Preferences = {
 } as const;
 
 export const Island = {
+  getStudyAlwaysOnTop(): Promise<boolean> {
+    return call("Island.GetStudyAlwaysOnTop");
+  },
   openMain(): Promise<void> {
     return call("Island.OpenMain");
   },
@@ -160,6 +163,12 @@ export const Island = {
   setPagingShortcuts(enabled: boolean): Promise<void> {
     return call("Island.SetPagingShortcuts", enabled);
   },
+  setQuizShortcuts(enabled: boolean): Promise<void> {
+    return call("Island.SetQuizShortcuts", enabled);
+  },
+  setStudyAlwaysOnTop(enabled: boolean): Promise<void> {
+    return call("Island.SetStudyAlwaysOnTop", enabled);
+  },
 } as const;
 
 // ---- Events ----
@@ -170,6 +179,7 @@ export const events = {
   islandDismiss: event<boolean>("island-dismiss"),
   islandPointer: event<boolean>("island-pointer"),
   islandPage: event<number>("island-page"),
+  islandQuizChoice: event<number>("island-quiz-choice"),
   settings: event<Settings>("settings"),
   islandNavigate: event<string>("island-navigate"),
   library: event<LibraryState>("library"),

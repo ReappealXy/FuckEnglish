@@ -4,6 +4,7 @@ import { events, Island, Library, Preferences, type LibraryState, type Settings 
 import { islandHover } from "./lib/island-hover";
 import { browsePageTarget, isPagingControl } from "./lib/island-pagination";
 import { IslandSurface } from "./components/island-surface";
+import { canUseQuizShortcuts, quizChoiceFromEvent } from "./lib/quiz-shortcut";
 import "./island.css";
 
 export function IslandView() {
@@ -14,9 +15,12 @@ export function IslandView() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [controlFocused, setControlFocused] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
   const requestBusy = useRef(false);
   const pointerInside = useRef(false);
   const pageShortcut = useRef<(direction: number) => boolean>(() => false);
+  const answerShortcut = useRef<(choice: number) => boolean>(() => false);
+  const quizShortcutUpdates = useRef(Promise.resolve());
   const state = useRef({ expanded: false, settings: null as Settings | null });
   const transition = useRef<(value: boolean) => void>(() => {});
   const hover = useRef(islandHover({ set: (fn, delay) => window.setTimeout(fn, delay), clear: (id) => window.clearTimeout(id) }, value => transition.current(value)));
@@ -31,7 +35,14 @@ export function IslandView() {
     const apply = (s: Settings) => { hover.current.cancel(); state.current.settings = s; setSettings(s); };
     const off = events.library.on(v => { gotLibrary = true; setLibrary(v); });
     const offSettings = events.settings.on(v => { gotSettings = true; apply(v); });
-    const offDismiss = events.islandDismiss.on(() => { hover.current.cancel(); transition.current(false); });
+    const offDismiss = events.islandDismiss.on(() => {
+      if (document.querySelector('[data-learning-select-open="true"], .book-picker')) {
+        const event = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+        document.activeElement?.dispatchEvent(event);
+        if (event.defaultPrevented) return;
+      }
+      hover.current.cancel(); transition.current(false);
+    });
     const offWindow = events.islandWindow.on(v => { if (!v.expanded) { hover.current.cancel(); state.current.expanded = false; setExpanded(false); } });
     const offPointer = events.islandPointer.on(inside => {
       if (!nativePointer) return;
@@ -40,16 +51,19 @@ export function IslandView() {
       else hover.current.leave(state.current.settings?.islandCollapseDelay ?? 420);
     });
     const offPage = events.islandPage.on(direction => pageShortcut.current(direction));
+    const offChoice = events.islandQuizChoice.on(choice => answerShortcut.current(choice));
     Library.snapshot().then(v => { if (active && !gotLibrary) setLibrary(v); }).catch(e => setError(String(e)));
     Preferences.get().then(v => { if (active && !gotSettings) apply(v); }).catch(e => setError(String(e)));
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { hover.current.cancel(); transition.current(false); }
+      if (event.key === "Escape" && !event.defaultPrevented) { hover.current.cancel(); transition.current(false); }
       if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
       if (direction && pageShortcut.current(direction)) event.preventDefault();
+      const choice = quizChoiceFromEvent(event, latestQuiz.current, document.activeElement);
+      if (choice !== null && answerShortcut.current(choice)) event.preventDefault();
     };
     window.addEventListener("keydown", keydown);
-    return () => { active = false; hover.current.cancel(); off(); offSettings(); offDismiss(); offWindow(); offPointer(); offPage(); window.removeEventListener("keydown", keydown); };
+    return () => { active = false; hover.current.cancel(); off(); offSettings(); offDismiss(); offWindow(); offPointer(); offPage(); offChoice(); window.removeEventListener("keydown", keydown); };
   }, []);
   useEffect(() => {
     const update = () => setControlFocused(isPagingControl(document.activeElement));
@@ -61,10 +75,24 @@ export function IslandView() {
   }, []);
   useEffect(() => {
     if (!isMyGo() || !nativePointer) return;
-    const enabled = expanded && !controlFocused && !!library?.selected && library.pages > 0 && !library.quiz?.direction;
+    const enabled = expanded && !controlFocused && !controlsOpen && !!library?.selected && library.pages > 0 && !library.quiz?.direction;
     void Island.setPagingShortcuts(enabled).catch(e => setError(String(e)));
     return () => { void Island.setPagingShortcuts(false).catch(() => {}); };
-  }, [expanded, controlFocused, library?.selected, library?.pages, library?.quiz?.direction]);
+  }, [expanded, controlFocused, controlsOpen, library?.selected, library?.pages, library?.quiz?.direction]);
+  const latestQuiz = useRef(library?.quiz);
+  latestQuiz.current = library?.quiz;
+  useEffect(() => {
+    if (!isMyGo() || !nativePointer) return;
+    // Keep native registrations stable between answers so a held key cannot
+    // become a fresh press when the automatic advance renders the next word.
+    const enabled = expanded && !controlsOpen && library?.quiz?.direction === "english-chinese" && !!library.quiz.token && !library.quiz.completed;
+    // Bound methods run asynchronously. Send enable/disable changes in order
+    // so an older menu-close cleanup cannot disable the newest registration.
+    quizShortcutUpdates.current = quizShortcutUpdates.current.catch(() => {}).then(() => Island.setQuizShortcuts(enabled)).catch(e => setError(String(e)));
+  }, [expanded, controlsOpen, library?.quiz?.direction, !!library?.quiz?.token, library?.quiz?.completed]);
+  useEffect(() => () => {
+    if (isMyGo() && nativePointer) quizShortcutUpdates.current = quizShortcutUpdates.current.catch(() => {}).then(() => Island.setQuizShortcuts(false)).catch(() => {});
+  }, []);
   useLayoutEffect(() => {
     if (!isMyGo() || !nativePointer) return;
     const surface = document.querySelector<HTMLElement>(".island-surface"); if (!surface) return;
@@ -86,13 +114,19 @@ export function IslandView() {
     finally { requestBusy.current = false; setBusy(false); }
   };
   pageShortcut.current = direction => {
-    if (!state.current.expanded || !pointerInside.current || requestBusy.current || isPagingControl(document.activeElement)) return false;
+    if (!state.current.expanded || !pointerInside.current || controlsOpen || requestBusy.current || isPagingControl(document.activeElement)) return false;
     const page = browsePageTarget(library, direction);
     if (page === null) return false;
     void action(() => Library.page(page));
     return true;
   };
+  answerShortcut.current = choice => {
+    if (!state.current.expanded || !pointerInside.current || controlsOpen || requestBusy.current || !canUseQuizShortcuts(library?.quiz, document.activeElement) || choice < 0 || choice > 3) return false;
+    void action(() => Library.answerQuiz(library!.quiz.token, choice));
+    return true;
+  };
   return <IslandSurface settings={settings} library={library} expanded={expanded} error={error} busy={busy}
+    onControlsOpen={setControlsOpen}
     onEnter={nativePointer ? undefined : () => { pointerInside.current = true; hover.current.enter(state.current.settings?.islandHover !== false, state.current.settings?.islandExpandDelay ?? 160); }}
     onLeave={nativePointer ? undefined : () => { pointerInside.current = false; hover.current.leave(state.current.settings?.islandCollapseDelay ?? 420); }}
     onExpand={() => { hover.current.cancel(); transition.current(true); }} onCollapse={() => { hover.current.cancel(); transition.current(false); }}

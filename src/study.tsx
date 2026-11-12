@@ -5,6 +5,8 @@ import { browsePageTarget, isPagingControl } from "./lib/island-pagination";
 import { LearningContent } from "./components/learning-content";
 import { WindowTitlebar } from "./components/window-titlebar";
 import { transparencyStyle } from "./lib/learning-appearance";
+import { LearningSelect } from "./components/learning-select";
+import { quizChoiceFromEvent } from "./lib/quiz-shortcut";
 import "./island.css";
 import "./study.css";
 
@@ -14,6 +16,7 @@ export function StudyView() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [maximized, setMaximized] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const requestBusy = useRef(false);
 
   useEffect(() => {
@@ -43,6 +46,7 @@ export function StudyView() {
       if (active && !gotLibrary) setLibrary(value);
     }).catch(reason => setError(String(reason)));
     Preferences.get().then(value => { if (active && !gotSettings) setSettings(value); }).catch(reason => setError(String(reason)));
+    if (isMyGo()) Island.getStudyAlwaysOnTop().then(value => { if (active) setPinned(value); }).catch(reason => setError(String(reason)));
     return () => {
       active = false;
       offLibrary();
@@ -78,23 +82,25 @@ export function StudyView() {
       if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
       if (direction && pageShortcut(direction)) event.preventDefault();
+      const choice = quizChoiceFromEvent(event, library?.quiz, document.activeElement);
+      if (choice !== null && !requestBusy.current && !document.querySelector('[data-learning-select-open="true"]')) {
+        event.preventDefault();
+        void action(() => Library.answerQuiz(library!.quiz.token, choice));
+      }
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   });
 
   return <div class={`study-window deck-palette${maximized ? " maximized" : ""}${(settings?.backgroundTransparency ?? 0) > 0 ? " transparent-background" : ""}`} style={transparencyStyle(settings)}>
-    <WindowTitlebar subtitle="背单词" />
+    <WindowTitlebar subtitle="背单词"><button type="button" class="study-pin" aria-label={pinned ? "取消窗口置顶" : "窗口置顶"} aria-pressed={pinned} title={pinned ? "取消置顶" : "置顶"} disabled={busy} onClick={() => void action(async () => {
+      await Island.setStudyAlwaysOnTop(!pinned); setPinned(!pinned);
+    })}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 3 8 0-1 6 3 4v2H6v-2l3-4-1-6Zm4 12v6" /></svg></button></WindowTitlebar>
     <main class="study-main">
       <div class="study-toolbar">
         <div class="study-selectors">
-          <select aria-label="切换 Excel 词表" value={library?.selected ?? ""} disabled={busy || !library?.books.some(book => !book.error)} onChange={event => void action(() => Library.select(event.currentTarget.value))}>
-            {!library?.selected && <option value="">暂无词表</option>}
-            {library?.books.map(book => <option key={book.name} value={book.name} disabled={!!book.error}>{book.name.replace(/\.xlsx$/i, "")} · {book.count} 词{book.error ? "（格式错误）" : ""}</option>)}
-          </select>
-          <select aria-label="学习模式" value={library?.quiz?.direction || "browse"} disabled={busy || !library?.selected} onChange={event => void action(() => event.currentTarget.value === "browse" ? Library.endQuiz() : Library.startQuiz(event.currentTarget.value))}>
-            <option value="browse">浏览</option><option value="english-chinese">英选中</option>
-          </select>
+          <LearningSelect id="study-wordbook" label="切换 Excel 词表" value={library?.selected ?? ""} disabled={busy || !library?.books.some(book => !book.error)} options={library?.books.map(book => ({ value: book.name, label: `${book.name.replace(/\.xlsx$/i, "")} · ${book.count} 词${book.error ? "（格式错误）" : ""}`, disabled: !!book.error })) ?? []} onChange={value => void action(() => Library.select(value))} />
+          <LearningSelect id="study-mode" label="学习模式" value={library?.quiz?.direction || "browse"} disabled={busy || !library?.selected} options={[{value:"browse",label:"浏览"},{value:"english-chinese",label:"英选中"}]} onChange={value => void action(() => value === "browse" ? Library.endQuiz() : Library.startQuiz(value))} />
           <span class="study-word-count">{library?.total ?? 0} 个单词</span>
         </div>
         <div class="study-actions">

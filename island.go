@@ -59,6 +59,7 @@ var IslandWindowEvent = mygo.NewEvent[IslandWindowState]("island-window")
 var IslandDismissEvent = mygo.NewEvent[bool]("island-dismiss")
 var IslandPointerEvent = mygo.NewEvent[bool]("island-pointer")
 var IslandPageEvent = mygo.NewEvent[int]("island-page")
+var IslandQuizChoiceEvent = mygo.NewEvent[int]("island-quiz-choice")
 var SettingsEvent = mygo.NewEvent[Settings]("settings")
 
 type Island struct{ core *Core }
@@ -69,6 +70,12 @@ func (i *Island) SetPagingShortcuts(enabled bool) {
 	mygo.RunOnMain(func() {
 		islandPagingAllowed = enabled
 		updateIslandPagingShortcuts()
+	})
+}
+func (i *Island) SetQuizShortcuts(enabled bool) {
+	mygo.RunOnMain(func() {
+		islandQuizAllowed = enabled
+		updateIslandQuizShortcuts()
 	})
 }
 func (i *Island) SetHitRegion(region IslandHitRegion) {
@@ -99,6 +106,54 @@ var islandPointerInside bool
 var islandPagingAllowed bool
 var islandPagingActive bool
 var islandPagingRegistered bool
+var islandQuizAllowed bool
+var islandQuizActive bool
+var islandQuizRegistered bool
+
+func updateIslandQuizShortcuts() {
+	active := !studyActive && islandExpanded && islandPointerInside && islandQuizAllowed
+	if active == islandQuizActive {
+		return
+	}
+	islandQuizActive = active
+	if !active {
+		if islandQuizRegistered {
+			for _, key := range []string{"1", "2", "3", "4"} {
+				mygo.GlobalShortcut.Unregister(key)
+			}
+			islandQuizRegistered = false
+		}
+		return
+	}
+	for _, key := range []struct {
+		name   string
+		choice int
+	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}} {
+		if mygo.GlobalShortcut.IsRegistered(key.name) {
+			return
+		}
+	}
+	registered := []string{}
+	for _, key := range []struct {
+		name   string
+		choice int
+	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}} {
+		choice := key.choice
+		if err := mygo.GlobalShortcut.Register(key.name, func() {
+			if !studyActive && islandExpanded && islandPointerInside && islandQuizAllowed {
+				_ = IslandQuizChoiceEvent.Broadcast(choice)
+			}
+		}); err != nil {
+			for _, name := range registered {
+				mygo.GlobalShortcut.Unregister(name)
+			}
+			log.Println("island quiz shortcut:", err)
+			return
+		}
+		registered = append(registered, key.name)
+	}
+	islandQuizRegistered = true
+}
 
 func updateIslandPagingShortcuts() {
 	active := !studyActive && islandExpanded && islandPointerInside && islandPagingAllowed
@@ -191,7 +246,9 @@ func applyIsland(core *Core) {
 		if studyActive || !core.settings().IslandVisible {
 			islandExpanded = false
 			islandPointerInside, islandPagingAllowed = false, false
+			islandQuizAllowed = false
 			updateIslandPagingShortcuts()
+			updateIslandQuizShortcuts()
 			islandEscapeKey(false)
 			if islandWin != nil {
 				islandWin.Hide()
@@ -219,7 +276,9 @@ func applyIsland(core *Core) {
 		islandWin, islandReady = w, false
 		islandHitRegion = IslandHitRegion{}
 		islandPointerInside, islandPagingAllowed = false, false
+		islandQuizAllowed = false
 		updateIslandPagingShortcuts()
+		updateIslandQuizShortcuts()
 		stopPointer := startIslandPointer(w, core)
 		w.OnClose(func(e *mygo.CloseEvent) {
 			if applicationQuitting {
@@ -238,7 +297,9 @@ func applyIsland(core *Core) {
 			stopPointer()
 			islandWin, islandReady, islandExpanded = nil, false, false
 			islandPointerInside, islandPagingAllowed = false, false
+			islandQuizAllowed = false
 			updateIslandPagingShortcuts()
+			updateIslandQuizShortcuts()
 			islandEscapeKey(false)
 		})
 	})
@@ -268,6 +329,7 @@ func setIslandExpanded(core *Core, expanded bool) {
 		expanded = expanded && !studyActive && s.IslandVisible
 		islandExpanded = expanded
 		updateIslandPagingShortcuts()
+		updateIslandQuizShortcuts()
 		islandEscapeKey(expanded)
 		if islandReady && !studyActive && core.settings().IslandVisible {
 			islandWin.ShowInactive()

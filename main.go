@@ -24,7 +24,10 @@ func main() {
 		return
 	}
 	app.OnSecondInstance(func([]string, string) { showMainWindow() })
-	app.OnBeforeQuit(func(*mygo.QuitEvent) { applicationQuitting = true })
+	app.OnBeforeQuit(func(*mygo.QuitEvent) {
+		applicationQuitting = true
+		stopStudyShortcut()
+	})
 	app.OnWindowAllClosed(func() {})
 	app.WhenReady(func() {
 		dir, err := app.Path(mygo.PathUserData)
@@ -42,6 +45,7 @@ func main() {
 		}
 		setupTray(core)
 		setupIsland(core)
+		setupStudyShortcut(core)
 		if !app.WasOpenedAtLogin() {
 			showMainWindow()
 		}

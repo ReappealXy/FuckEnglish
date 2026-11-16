@@ -3,6 +3,8 @@ import { WindowTitlebar } from "./components/window-titlebar";
 import { events, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { IslandSurface } from "./components/island-surface";
 import { QuizHistory } from "./components/quiz-history";
+import { StudyShortcutSetting } from "./components/study-shortcut-setting";
+import { hasStudyShortcutModifier } from "./lib/study-shortcut";
 import { islandTheme, islandThemes } from "./lib/island-theme";
 import { paginateBooks, selectedBookPage } from "./lib/book-pagination";
 import "./island.css";
@@ -21,6 +23,7 @@ export function App() {
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
   const [bookPage, setBookPage] = useState(0);
+  const [shortcutStatus, setShortcutStatus] = useState<{ shortcut: string; registered: boolean; error: string } | null>(null);
   const savedRef = useRef<Settings | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const books = library?.books ?? [];
@@ -34,11 +37,13 @@ export function App() {
     const resetView = () => {
       setTab("词表文件夹"); setExpanded(true);
       requestAnimationFrame(() => { if (mainRef.current) mainRef.current.scrollTop = 0; });
+      void Preferences.shortcutStatus().then(status => { if (active) setShortcutStatus(status); }).catch(() => {});
     };
     const offNavigate = events.islandNavigate.on(resetView);
     const offOpened = events.settingsOpened.on(resetView);
     Library.snapshot().then(s => { if (active && !gotLibrary) { setLibrary(s); setFolder(s.folder); } }).catch(e => { setMessage(String(e)); setFailed(true); });
     Preferences.get().then(s => { if (active && !gotSettings) { setSaved(s); setForm(s); savedRef.current = s; } }).catch(e => { setMessage(String(e)); setFailed(true); });
+    Preferences.shortcutStatus().then(status => { if (active) setShortcutStatus(status); }).catch(() => {});
     return () => { active = false; offLibrary(); offSettings(); offNavigate(); offOpened(); };
   }, []);
   const set = (patch: Partial<Settings>) => setForm(old => old ? {...old, ...patch} : old);
@@ -48,11 +53,17 @@ export function App() {
     finally { setBusy(false); }
   };
   const dirty = JSON.stringify(form) !== JSON.stringify(saved);
-  const save = () => run(async () => { if (!form) return; const s = await Preferences.save(form); savedRef.current = s; setSaved(s); setForm(s); }, "设置已保存");
+  const validShortcut = !form || hasStudyShortcutModifier(form.studyShortcut);
+  const retryShortcut = !!shortcutStatus?.error;
+  const save = () => run(async () => {
+    if (!form) return;
+    try { const s = await Preferences.save(form); savedRef.current = s; setSaved(s); setForm(s); }
+    finally { await Preferences.shortcutStatus().then(setShortcutStatus).catch(() => {}); }
+  }, "设置已保存");
   return <div class="app-shell">
     <WindowTitlebar subtitle="摸鱼背单词" />
     <main class="app-main" ref={mainRef}><div class="deck-settings deck-palette">
-      <nav class="deck-settings-nav" aria-label="软件设置"><h2>单词胶囊</h2>{tabs.map(label => <button type="button" aria-current={tab === label ? "page" : undefined} class={tab === label ? "selected" : ""} onClick={() => { setTab(label); setExpanded(label !== "收起样式"); }}>{label}</button>)}<p class="app-version">FuckEnglish 0.1.9<br/>本地词表 · 随手翻阅</p></nav>
+      <nav class="deck-settings-nav" aria-label="软件设置"><h2>单词胶囊</h2>{tabs.map(label => <button type="button" aria-current={tab === label ? "page" : undefined} class={tab === label ? "selected" : ""} onClick={() => { setTab(label); setExpanded(label !== "收起样式"); }}>{label}</button>)}<p class="app-version">FuckEnglish 0.1.10<br/>本地词表 · 随手翻阅</p></nav>
       <div class="deck-settings-content">
         <div class="deck-preview-heading"><span>实时词表预览</span><div><button type="button" class={!expanded ? "selected" : ""} onClick={() => setExpanded(false)}>收起</button><button type="button" class={expanded ? "selected" : ""} onClick={() => setExpanded(true)}>展开</button></div></div>
         <div class="deck-preview" style={{height: `${expanded ? (form?.islandHeight ?? 200)+16 : 70}px`}}><div style={{width:"100%",maxWidth:`${(form?.islandWidth ?? 520)+24}px`,height:`${(form?.islandHeight ?? 200)+16}px`,margin:"0 auto"}}><IslandSurface preview settings={form} library={library} expanded={expanded} busy={busy} onSelect={name => void run(() => Library.select(name))} onPage={page => void run(() => Library.page(page))} onFocus={index => void run(() => Library.focus(index))} onMode={mode => void run(() => mode === "browse" ? Library.endQuiz() : Library.startQuiz(mode))} onOrder={order => void run(() => Library.setBrowseOrder(order))} onAnswer={(token, choice) => void run(() => Library.answerQuiz(token, choice))} onNext={token => void run(() => Library.nextQuiz(token))} /></div></div>
@@ -68,13 +79,13 @@ export function App() {
           </>}
           {tab === "测试记录" && <QuizHistory library={library} />}
           {tab === "单词模板" && <div class="word-template"><p>下载七列 Excel 模板，按列填写后，保存到词表文件夹并刷新词表即可浏览。</p><div class="word-template-columns">{["英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3"].map(label => <span key={label}>{label}</span>)}</div><p>中文干扰项用于“看英文选中文”。填写三个不同的错误选项，不要填写正确答案。</p><p>缺少三个中文干扰项，或选项重复的单词仍可浏览，但不能参与小测。在胶囊顶部选择“英选中”开始测试。已有十列词表仍可使用。</p><button class="word-template-save" disabled={busy} onClick={() => void (async () => { setBusy(true); setMessage(""); setFailed(false); try { const path = await Library.saveTemplate(); if (path) setMessage(`模板已保存：${path}`); } catch (e) { setMessage(String(e)); setFailed(true); } finally { setBusy(false); } })()}>保存 Excel 模板…</button></div>}
-          {form && tab === "常规" && <><Row label="显示单词胶囊"><Toggle checked={form.islandVisible} set={v => set({islandVisible:v})} label="显示单词胶囊"/></Row><Row label="鼠标悬浮展开"><Toggle checked={form.islandHover} set={v => set({islandHover:v})} label="鼠标悬浮展开"/></Row><Row label="开机启动"><Toggle checked={form.openAtLogin} set={v => set({openAtLogin:v})} label="开机启动"/></Row><p class="deck-settings-note">登录 Windows 后自动在托盘启动胶囊，不打开设置窗口。关闭主窗口后胶囊继续运行；完全退出请使用托盘菜单。</p></>}
+          {form && tab === "常规" && <><Row label="显示单词胶囊"><Toggle checked={form.islandVisible} set={v => set({islandVisible:v})} label="显示单词胶囊"/></Row><Row label="鼠标悬浮展开"><Toggle checked={form.islandHover} set={v => set({islandHover:v})} label="鼠标悬浮展开"/></Row><Row label="开机启动"><Toggle checked={form.openAtLogin} set={v => set({openAtLogin:v})} label="开机启动"/></Row><p class="deck-settings-note">登录 Windows 后自动在托盘启动胶囊，不打开设置窗口。关闭主窗口后胶囊继续运行；完全退出请使用托盘菜单。</p><StudyShortcutSetting value={form.studyShortcut} disabled={busy} onChange={value => set({studyShortcut:value})}/>{shortcutStatus?.error && <p class="feedback error" role="alert">当前快捷键 {shortcutStatus.shortcut} 未生效：{shortcutStatus.error} 可修改快捷键后保存，或关闭占用它的软件后重新保存。</p>}</>}
           {form && tab === "收起样式" && <Row label="形态"><div class="deck-shape-choices">{([['capsule','胶囊'],['notch','刘海'],['line','指示条']] as const).map(([value,label]) => <button class={form.islandStyle === value ? "selected" : ""} aria-pressed={form.islandStyle === value} onClick={() => set({islandStyle:value})}><span class={`deck-shape deck-shape-${value}`}/>{label}</button>)}</div></Row>}
           {form && tab === "展开外观" && <><Row label="面板宽度"><Slider value={form.islandWidth} min={440} max={1200} step={20} unit="px" set={v => set({islandWidth:v})}/></Row><Row label="面板高度"><Slider value={form.islandHeight} min={200} max={600} step={20} unit="px" set={v => set({islandHeight:v})}/></Row><p class="deck-settings-note">沿用原版默认 520 × 200，收起胶囊保持 196 × 32。每页固定 5 词。</p></>}
           {form && tab === "面板主题" && <><div class="deck-theme-list"><button class={`deck-theme${form.islandTheme === 'system' ? ' selected' : ''}`} aria-pressed={form.islandTheme === 'system'} onClick={() => set({islandTheme:'system'})}><span class="deck-system-theme">◐</span><span>跟随系统</span></button>{islandThemes.map(theme => <button class={`deck-theme${islandTheme(form.islandTheme).id === theme.id && form.islandTheme !== 'system' ? ' selected' : ''}`} aria-pressed={form.islandTheme === theme.id} onClick={() => set({islandTheme:theme.id})}><span class="deck-theme-sample" style={{background:theme.tokens.surface,color:theme.tokens.text}}><i style={{background:theme.tokens.down}}/><i style={{background:theme.tokens.up}}/><b>Aa</b></span><span>{theme.name}</span></button>)}</div><Row label="背景透明度"><Slider label="背景透明度" value={form.backgroundTransparency} min={0} max={100} step={1} unit="%" set={v => set({backgroundTransparency:v})}/></Row><Row label="文字透明度"><Slider label="文字透明度" value={form.textTransparency} min={0} max={100} step={1} unit="%" set={v => set({textTransparency:v})}/></Row><p class="deck-settings-note">0% 不透明，100% 完全透明。保存后同步应用到胶囊和背词窗口。</p></>}
           {form && tab === "悬浮与动画" && <><Row label="悬浮展开延迟"><Slider value={form.islandExpandDelay} min={0} max={1200} step={20} unit="ms" set={v=>set({islandExpandDelay:v})}/></Row><Row label="离开收起延迟"><Slider value={form.islandCollapseDelay} min={120} max={2000} step={20} unit="ms" set={v=>set({islandCollapseDelay:v})}/></Row><Row label="动画时长"><Slider value={form.islandAnimationDuration} min={100} max={1000} step={20} unit="ms" set={v=>set({islandAnimationDuration:v})}/></Row><p class="deck-settings-note">保留原版开合动画，并遵循系统减少动态效果设置。</p></>}
         </section>
-        <footer class="deck-settings-actions"><span role={failed ? "alert" : "status"} class={failed ? "error-text" : ""}>{message || (dirty ? "设置有未保存修改" : "设置已保存")}</span><button disabled={busy || !dirty} onClick={() => setForm(saved)}>还原</button><button class="deck-save" disabled={busy || !dirty} onClick={() => void save()}>{busy ? "处理中…" : "保存设置"}</button></footer>
+        <footer class="deck-settings-actions"><span role={failed ? "alert" : "status"} class={failed ? "error-text" : ""}>{message || (dirty ? "设置有未保存修改" : "设置已保存")}</span><button disabled={busy || !dirty} onClick={() => setForm(saved)}>还原</button><button class="deck-save" disabled={busy || (!dirty && !retryShortcut) || !validShortcut} onClick={() => void save()}>{busy ? "处理中…" : "保存设置"}</button></footer>
       </div>
     </div></main>
   </div>;

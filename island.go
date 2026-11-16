@@ -256,7 +256,6 @@ func applyIsland(core *Core) {
 			islandQuizAllowed = false
 			updateIslandPagingShortcuts()
 			updateIslandQuizShortcuts()
-			updateIslandStudyShortcut(core)
 			islandEscapeKey(false)
 			if islandWin != nil {
 				islandWin.Hide()
@@ -287,7 +286,6 @@ func applyIsland(core *Core) {
 		islandQuizAllowed = false
 		updateIslandPagingShortcuts()
 		updateIslandQuizShortcuts()
-		updateIslandStudyShortcut(core)
 		stopPointer := startIslandPointer(w, core)
 		w.OnClose(func(e *mygo.CloseEvent) {
 			if applicationQuitting {
@@ -309,7 +307,6 @@ func applyIsland(core *Core) {
 			islandQuizAllowed = false
 			updateIslandPagingShortcuts()
 			updateIslandQuizShortcuts()
-			updateIslandStudyShortcut(core)
 			islandEscapeKey(false)
 		})
 	})
@@ -340,7 +337,6 @@ func setIslandExpanded(core *Core, expanded bool) {
 		islandExpanded = expanded
 		updateIslandPagingShortcuts()
 		updateIslandQuizShortcuts()
-		updateIslandStudyShortcut(core)
 		islandEscapeKey(expanded)
 		if islandReady && !studyActive && core.settings().IslandVisible {
 			islandWin.ShowInactive()

@@ -129,6 +129,20 @@ func (p *Preferences) Get() Settings {
 	return s
 }
 func (p *Preferences) Save(s Settings) (Settings, error) {
+	var result Settings
+	var err error
+	// Native registration and settings writes are serialized with tray saves
+	// and shortcut callbacks; no Core mutex is held while hopping threads.
+	mygo.RunOnMain(func() { result, err = p.saveOnMain(s) })
+	return result, err
+}
+
+func (p *Preferences) saveOnMain(s Settings) (Settings, error) {
+	shortcut, _, err := normalizeStudyShortcut(s.StudyShortcut)
+	if err != nil {
+		return p.Get(), err
+	}
+	s.StudyShortcut = shortcut
 	s = normalizeTransparency(s)
 	valid := map[string]bool{"capsule": true, "notch": true, "line": true}
 	if !valid[s.IslandStyle] {
@@ -145,7 +159,10 @@ func (p *Preferences) Save(s Settings) (Settings, error) {
 			return p.Get(), err
 		}
 	}
-	_, err := p.core.change(func() error { p.core.cfg.Settings = s; return nil })
+	err = globalStudyShortcut.replace(s.StudyShortcut, func() error {
+		_, saveErr := p.core.change(func() error { p.core.cfg.Settings = s; return nil })
+		return saveErr
+	})
 	if err != nil {
 		if s.OpenAtLogin != wasOpenAtLogin {
 			if restoreErr := mygo.App.SetOpenAtLogin(wasOpenAtLogin); restoreErr != nil {

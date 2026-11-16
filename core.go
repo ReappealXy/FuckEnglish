@@ -34,6 +34,7 @@ type Settings struct {
 	BackgroundTransparency  int    `json:"backgroundTransparency"`
 	TextTransparency        int    `json:"textTransparency"`
 	OpenAtLogin             bool   `json:"openAtLogin"`
+	StudyShortcut           string `json:"studyShortcut"`
 }
 type settingsFile struct{ Settings }
 type config struct {
@@ -78,7 +79,7 @@ type Core struct {
 }
 
 func defaultSettings() Settings {
-	return Settings{IslandVisible: true, IslandStyle: "capsule", IslandTheme: "dark", IslandHover: true, IslandExpandDelay: 160, IslandCollapseDelay: 420, IslandAnimationDuration: 360, IslandWidth: 520, IslandHeight: 200}
+	return Settings{IslandVisible: true, IslandStyle: "capsule", IslandTheme: "dark", IslandHover: true, IslandExpandDelay: 160, IslandCollapseDelay: 420, IslandAnimationDuration: 360, IslandWidth: 520, IslandHeight: 200, StudyShortcut: defaultStudyShortcut}
 }
 
 func normalizeTransparency(s Settings) Settings {
@@ -104,6 +105,11 @@ func (c *Core) Init(dir string) error {
 		}
 	}
 	c.cfg.Settings = normalizeTransparency(c.cfg.Settings)
+	if shortcut, _, err := normalizeStudyShortcut(c.cfg.StudyShortcut); err == nil {
+		c.cfg.StudyShortcut = shortcut
+	} else {
+		c.cfg.StudyShortcut = defaultStudyShortcut
+	}
 	if c.cfg.Pages == nil {
 		c.cfg.Pages = map[string]int{}
 	}

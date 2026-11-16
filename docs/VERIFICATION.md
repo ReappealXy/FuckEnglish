@@ -238,3 +238,16 @@
 - 版本升级0.1.9，实际Windows x64 EXE和自定义NSIS原位置更新安装器构建成功。最终EXE在独立数据/APPDATA/运行时目录启动，设置窗口与胶囊均可见，产品版本0.1.9，进程退出清理；见 .verification/all-list-20261116/smoke/results.json。安装器未实际执行覆盖安装。
 - Windows原生Q最终16项检查通过，使用真实Core/Library和正式前端：Study返回、展开/收起胶囊悬停无焦点打开、组合键保护、跨窗口长按不反复切换、松开重按、菜单暂停/关闭恢复、鼠标移出注销、原Study HWND复用和题目token不变。实测修复模式菜单关闭时焦点保护读到旧open属性的问题，增加随菜单状态变化重新读取焦点，最终复测通过；见 .verification/all-list-20261116/native/results.json 与 RESULTS.md。sky未枚举隔离工具窗口，按指引降级Win32系统鼠标和物理扫描码注入；不连接WebView调试。环境为当前Windows 150%缩放，松开锁存16ms轮询、实测至少40ms间隔，不代表全部硬件/布局。
 - 最终交付目录 build/releases/FuckEnglish-0.1.9 含安装EXE、完整免安装目录、便携ZIP和SHA256清单，沿用上一版三份词表、保留旧包。目录与ZIP逐文件、安装器/便携程序与stage、哈希清单及个人设置/十份原词表一致性检查见 .verification/all-list-20261116/package-results.json。未提交Git、执行安装器、改写个人成绩或关闭用户旧进程。
+
+## 0.1.10 全局切换快捷键与自定义（2026-11-16）
+
+- 默认 Alt+Q 在原生应用启动时注册，独立于胶囊鼠标位置、窗口焦点和页面菜单；原先的单独 Q、页面切换服务和悬浮注册路径已移除。设置保存 `studyShortcut`，旧配置缺字段或手工填写无效值时采用 Alt+Q，有效旧值统一大小写与修饰键顺序。
+- “常规”页用 Ctrl/Alt/Shift/Win 复选框和字母、数字、F1–F12 主键选择器设置组合，至少包含 Ctrl/Alt/Win 之一；恢复默认只修改草稿，保存后应用。胶囊与背词窗口按钮提示订阅已保存的组合。启动注册失败显示原因，允许无其他修改时重新保存重试。
+- 原生注册候选键成功后再保存，保存成功后才注销旧键；冲突或写盘失败均保留原有效组合。Go 新增4项测试覆盖组合校验、旧配置迁移与重启、注册/写入顺序、候选和过期回调保护、冲突与实际写盘失败回滚及启动重试；`go test ./...`、`go vet ./...` 通过。Windows真实松开锁存改为检查自定义主键。
+- 绑定生成、TypeScript检查、正式前端构建和25项前端测试（176个断言）通过；原先3项局部Q事件测试随旧功能移除，既有成绩与其他快捷键测试保留。独立源码复核未发现残留的单独Q切换入口。
+- 外部已安装Google Chrome运行正式dist（index-CVR3rSJp.js）及隔离MyGo夹具，10组场景、浅深主题×840/1020宽4组布局通过，JavaScript异常0。覆盖默认组合、48个主键、无修饰键/仅Shift禁用保存、Space/Tab操作、草稿与已保存提示区分、保存重载、恢复默认与还原、模拟冲突后修正、Win显示与Meta辅助属性、设置重开复位、启动失败同值重试。截图目视检查通过；记录见 .verification/global-shortcut-20261116/browser/results.json。此夹具验证前端与接口约定，不替代实际系统注册。
+- Windows x64正式EXE与自定义NSIS原位置更新安装器构建成功，版本0.1.10。安装器保留稳定应用标识与原目录更新规则，本轮不执行覆盖安装或Windows登录启动验证。
+- Windows隔离原生宿主使用实际Core/Preferences、正式前端与独立数据，20项系统集成检查通过：实际注册Alt+Q、鼠标移出状态下向MyGo隐藏消息窗口派发WM_HOTKEY双向切换、立即改键与旧组合释放、过期消息忽略、当前题目token保持、独立进程占用Ctrl+Alt+L时拒绝保存并保留原键、重启保留自定义、启动冲突状态和改回默认恢复。记录见 .verification/global-shortcut-20261116/native/control-results.json。
+- 本轮原生验证明确区分系统注册/消息分发与真实按键：当前桌面环境中SetCursorPos返回0且位置不变，keybd_event无法送达，原生自动化也未枚举到测试窗口。未更改或关闭用户前台软件，未向其输入普通Q或已注销组合；真实物理按键、长按松开和普通Q向其他软件的系统输入验收未完成。程序化WM_HOTKEY检查不代表真实键盘验证，结果明确标记physicalKeysVerified=false；未使用IAB或连接/调试WebView页面。
+- 最终0.1.10 EXE在独立APPDATA/数据/运行时目录启动，设置与胶囊可见；另一进程申请Alt+Q返回系统占用错误1409，确认实际注册成功。前台为其他窗口、鼠标不在胶囊时，程序化WM_HOTKEY打开900×640背词窗口并隐藏胶囊，再派发返回胶囊，均通过；同样不宣称物理按键完成。EXE SHA256为35BF9F57E1E9FA0F9A28649A4DA6D04E369A424BD62BEA86E9F51E2A2275EC95，记录见 .verification/global-shortcut-20261116/smoke/results.json。测试宿主、夹具和正式EXE进程已退出，用户原运行进程未关闭。
+- 最终交付目录 build/releases/FuckEnglish-0.1.10 包含安装EXE、完整免安装目录、便携ZIP和SHA256清单，沿用0.1.9的三份随包词表并保留旧包。安装器/便携EXE与stage、ZIP逐文件与目录、全部哈希清单及个人设置/十份原词表一致性检查通过，见 .verification/global-shortcut-20261116/package-results.json。文档与验证范围同步附包，未提交Git或执行安装器。

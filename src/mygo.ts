@@ -94,6 +94,13 @@ export interface Settings {
   backgroundTransparency: number;
   textTransparency: number;
   openAtLogin: boolean;
+  studyShortcut: string;
+}
+
+export interface StudyShortcutStatus {
+  shortcut: string;
+  registered: boolean;
+  error: string;
 }
 
 export interface Word {
@@ -162,6 +169,9 @@ export const Preferences = {
   save(s: Settings): Promise<Settings> {
     return call("Preferences.Save", s);
   },
+  shortcutStatus(): Promise<StudyShortcutStatus> {
+    return call("Preferences.ShortcutStatus");
+  },
 } as const;
 
 export const Island = {
@@ -194,12 +204,6 @@ export const Island = {
   },
   setStudyAlwaysOnTop(enabled: boolean): Promise<void> {
     return call("Island.SetStudyAlwaysOnTop", enabled);
-  },
-  setStudyShortcut(enabled: boolean): Promise<void> {
-    return call("Island.SetStudyShortcut", enabled);
-  },
-  toggleStudyShortcut(fromStudy: boolean): Promise<void> {
-    return call("Island.ToggleStudyShortcut", fromStudy);
   },
 } as const;
 

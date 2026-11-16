@@ -4,8 +4,7 @@ import { events, Island, Library, Preferences, type LibraryState, type Settings 
 import { islandHover } from "./lib/island-hover";
 import { browsePageTarget, isPagingControl } from "./lib/island-pagination";
 import { IslandSurface } from "./components/island-surface";
-import { canUseQuizNextShortcut, canUseQuizShortcuts, isQuizShortcutBlockedTarget, quizChoiceFromEvent, quizNextFromEvent } from "./lib/quiz-shortcut";
-import { studyToggleFromEvent } from "./lib/study-shortcut";
+import { canUseQuizNextShortcut, canUseQuizShortcuts, quizChoiceFromEvent, quizNextFromEvent } from "./lib/quiz-shortcut";
 import "./island.css";
 
 export function IslandView() {
@@ -16,15 +15,12 @@ export function IslandView() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [controlFocused, setControlFocused] = useState(false);
-  const [studyControlFocused, setStudyControlFocused] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const requestBusy = useRef(false);
   const pointerInside = useRef(false);
   const pageShortcut = useRef<(direction: number) => boolean>(() => false);
   const answerShortcut = useRef<(choice: number) => boolean>(() => false);
   const nextShortcut = useRef<() => boolean>(() => false);
-  const studyShortcut = useRef<(event: KeyboardEvent) => boolean>(() => false);
-  const studyShortcutUpdates = useRef(Promise.resolve());
   const quizShortcutUpdates = useRef(Promise.resolve());
   const state = useRef({ expanded: false, settings: null as Settings | null });
   const transition = useRef<(value: boolean) => void>(() => {});
@@ -61,7 +57,6 @@ export function IslandView() {
     Library.snapshot().then(v => { if (active && !gotLibrary) setLibrary(v); }).catch(e => setError(String(e)));
     Preferences.get().then(v => { if (active && !gotSettings) apply(v); }).catch(e => setError(String(e)));
     const keydown = (event: KeyboardEvent) => {
-      if (studyShortcut.current(event)) { event.preventDefault(); return; }
       if (event.key === "Escape" && !event.defaultPrevented) { hover.current.cancel(); transition.current(false); }
       if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
@@ -76,7 +71,6 @@ export function IslandView() {
   useEffect(() => {
     const update = () => {
       setControlFocused(isPagingControl(document.activeElement));
-      setStudyControlFocused(isQuizShortcutBlockedTarget(document.activeElement));
     };
     const afterBlur = () => queueMicrotask(update);
     document.addEventListener("focusin", update);
@@ -85,22 +79,11 @@ export function IslandView() {
     return () => { document.removeEventListener("focusin", update); document.removeEventListener("focusout", afterBlur); };
   }, []);
   useEffect(() => {
-    setStudyControlFocused(isQuizShortcutBlockedTarget(document.activeElement));
-  }, [controlsOpen]);
-  useEffect(() => {
     if (!isMyGo() || !nativePointer) return;
     const enabled = expanded && !controlFocused && !controlsOpen && !!library?.selected && library.pages > 0 && !library.quiz?.direction;
     void Island.setPagingShortcuts(enabled).catch(e => setError(String(e)));
     return () => { void Island.setPagingShortcuts(false).catch(() => {}); };
   }, [expanded, controlFocused, controlsOpen, library?.selected, library?.pages, library?.quiz?.direction]);
-  useEffect(() => {
-    if (!isMyGo() || !nativePointer) return;
-    const enabled = !controlsOpen && !studyControlFocused && !busy;
-    studyShortcutUpdates.current = studyShortcutUpdates.current.catch(() => {}).then(() => Island.setStudyShortcut(enabled)).catch(e => setError(String(e)));
-  }, [controlsOpen, studyControlFocused, busy]);
-  useEffect(() => () => {
-    if (isMyGo() && nativePointer) studyShortcutUpdates.current = studyShortcutUpdates.current.catch(() => {}).then(() => Island.setStudyShortcut(false)).catch(() => {});
-  }, []);
   const latestQuiz = useRef(library?.quiz);
   latestQuiz.current = library?.quiz;
   useEffect(() => {
@@ -150,11 +133,6 @@ export function IslandView() {
   nextShortcut.current = () => {
     if (!state.current.expanded || !pointerInside.current || controlsOpen || requestBusy.current || !canUseQuizNextShortcut(library?.quiz, document.activeElement)) return false;
     void action(() => Library.nextQuiz(library!.quiz.token));
-    return true;
-  };
-  studyShortcut.current = event => {
-    if (!pointerInside.current || requestBusy.current || !studyToggleFromEvent(event, document.activeElement, controlsOpen)) return false;
-    void action(() => Island.toggleStudyShortcut(false));
     return true;
   };
   return <IslandSurface settings={settings} library={library} expanded={expanded} error={error} busy={busy}

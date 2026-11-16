@@ -15,9 +15,9 @@ import (
 var islandQuizNextHeld atomic.Bool
 var studyToggleHeld atomic.Bool
 
-// The same press is shared by the native capsule and focused study page.
-// Keep it latched through a view switch until Windows reports a real key-up.
-func acceptStudyTogglePress() bool {
+// Keep the configured primary key latched through a view switch until Windows
+// reports a real key-up, even if another key resets MOD_NOREPEAT meanwhile.
+func acceptStudyTogglePress(key uintptr) bool {
 	if !studyToggleHeld.CompareAndSwap(false, true) {
 		return false
 	}
@@ -26,7 +26,7 @@ func acceptStudyTogglePress() bool {
 		ticker := time.NewTicker(16 * time.Millisecond)
 		defer ticker.Stop()
 		for range ticker.C {
-			state, _, _ := getKeyState.Call(0x51) // VK_Q
+			state, _, _ := getKeyState.Call(key)
 			if state&0x8000 == 0 {
 				studyToggleHeld.Store(false)
 				return
@@ -114,7 +114,6 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 						islandPointerInside = false
 						updateIslandPagingShortcuts()
 						updateIslandQuizShortcuts()
-						updateIslandStudyShortcut(core)
 						return
 					}
 					var point [2]int32
@@ -132,7 +131,6 @@ func startIslandPointer(w *mygo.Window, core *Core) func() {
 					islandPointerInside = hit
 					updateIslandPagingShortcuts()
 					updateIslandQuizShortcuts()
-					updateIslandStudyShortcut(core)
 					if ignoring == hit {
 						ignoring = !hit
 						w.SetIgnoreMouseEvents(ignoring)

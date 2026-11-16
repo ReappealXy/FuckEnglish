@@ -20,6 +20,17 @@
 .deck-setting-row p, .deck-settings-note { margin: 5px 0 0; font-size: 11px; color: var(--deck-secondary); max-width: 48ch; line-height: 1.6; }
 .deck-settings-note { margin-top: 18px; }
 .deck-setting-control { flex-shrink: 0; }
+.study-shortcut-setting { margin-top: 24px; border-top: 1px solid var(--deck-border); padding-top: 20px; }
+.study-shortcut-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.study-shortcut-heading strong { font-weight: 500; color: var(--deck-secondary); }
+.study-shortcut-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; font-size: 12px; }
+.study-shortcut-modifier { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.study-shortcut-modifier input { margin: 0; accent-color: var(--deck-accent); }
+.study-shortcut-controls select, .study-shortcut-controls button { border: 1px solid var(--deck-border); border-radius: 5px; padding: 6px 10px; background: var(--deck-inset); color: var(--deck-text); font: inherit; }
+.study-shortcut-controls select { min-width: 70px; }
+.study-shortcut-controls :focus-visible { outline: 2px solid var(--deck-accent); outline-offset: 3px; }
+.study-shortcut-setting .deck-settings-note { max-width: 70ch; margin-top: 12px; }
+.study-shortcut-error { font-size: 12px; }
 .deck-toggle { display: inline-flex; position: relative; align-items: center; }
 .deck-toggle input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
 .deck-toggle span { position: relative; display: block; width: 34px; height: 19px; border-radius: 20px; background: #bfc3ce; transition: background 150ms; }

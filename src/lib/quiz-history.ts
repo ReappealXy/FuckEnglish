@@ -14,6 +14,7 @@ export interface HistoryRecord {
 }
 
 export type TrendMode = "attempt" | "day" | "month";
+export type HistoryScope = "single" | "all";
 
 export interface TrendPoint {
   key: string;
@@ -23,9 +24,10 @@ export interface TrendPoint {
 }
 
 function sortedRecords(records: readonly HistoryRecord[]): HistoryRecord[] {
-  return [...records].sort((a, b) => a.date.localeCompare(b.date)
-    || Date.parse(a.completedAt) - Date.parse(b.completedAt)
-    || a.attempt - b.attempt);
+  return [...records].sort((a, b) => Date.parse(a.completedAt) - Date.parse(b.completedAt)
+    || a.date.localeCompare(b.date)
+    || a.attempt - b.attempt
+    || a.id.localeCompare(b.id));
 }
 
 export function historyByDay(records: readonly HistoryRecord[]): Map<string, HistoryRecord[]> {
@@ -43,13 +45,26 @@ export function dailyAverage(records: readonly HistoryRecord[]): number {
   return records.length ? records.reduce((sum, record) => sum + record.score, 0) / records.length : 0;
 }
 
-/** Every practiced day has the same weight, even when one day has many more rounds. */
-export function summarizeHistory(records: readonly HistoryRecord[]): { rounds: number; days: number; average: number } {
+/** For one practiced day, each List has equal weight regardless of its round count. */
+export function dailyBookAverage(records: readonly HistoryRecord[]): number {
+  const books = new Map<string, { sum: number; count: number }>();
+  for (const record of records) {
+    const totals = books.get(record.book) ?? { sum: 0, count: 0 };
+    totals.sum += record.score;
+    totals.count++;
+    books.set(record.book, totals);
+  }
+  return books.size ? [...books.values()].reduce((sum, totals) => sum + totals.sum / totals.count, 0) / books.size : 0;
+}
+
+/** Practiced days have equal weight; all-List mode first gives each day's Lists equal weight. */
+export function summarizeHistory(records: readonly HistoryRecord[], scope: HistoryScope = "single"): { rounds: number; days: number; books: number; average: number } {
   const days = historyByDay(records);
+  const averageDay = scope === "all" ? dailyBookAverage : dailyAverage;
   const average = days.size
-    ? [...days.values()].reduce((sum, rounds) => sum + dailyAverage(rounds), 0) / days.size
+    ? [...days.values()].reduce((sum, rounds) => sum + averageDay(rounds), 0) / days.size
     : 0;
-  return { rounds: records.length, days: days.size, average };
+  return { rounds: records.length, days: days.size, books: new Set(records.map(record => record.book)).size, average };
 }
 
 // UTC is used only for calendar arithmetic, never to reinterpret a saved completion date.
@@ -101,28 +116,29 @@ export function yearWeeks(year: number): (string | null)[][] {
 }
 
 /** Build one month of rounds/days, or one year of monthly averages. Missing practice stays null. */
-export function buildTrend(records: readonly HistoryRecord[], mode: TrendMode, year: number, month: number): TrendPoint[] {
+export function buildTrend(records: readonly HistoryRecord[], mode: TrendMode, year: number, month: number, scope: HistoryScope = "single"): TrendPoint[] {
   validateCalendar(year, month);
   const yearPrefix = `${String(year).padStart(4, "0")}-`;
   const monthPrefix = `${yearPrefix}${String(month).padStart(2, "0")}-`;
   if (mode === "attempt") {
     return sortedRecords(records.filter(record => record.date.startsWith(monthPrefix))).map(record => ({
       key: record.id,
-      label: `${record.date.slice(5)} 第${record.dailyAttempt}次`,
+      label: `${scope === "all" ? `${record.book.replace(/\.xlsx$/i, "")} ` : ""}${record.date.slice(5)} 第${record.dailyAttempt}次`,
       value: record.score,
       records: [record],
     }));
   }
   if (mode === "day") {
     const days = historyByDay(records);
+    const averageDay = scope === "all" ? dailyBookAverage : dailyAverage;
     return monthDays(year, month).filter((date): date is string => date !== null).map(date => {
       const rounds = days.get(date) ?? [];
-      return { key: date, label: `${Number(date.slice(8))}日`, value: rounds.length ? dailyAverage(rounds) : null, records: rounds };
+      return { key: date, label: `${Number(date.slice(8))}日`, value: rounds.length ? averageDay(rounds) : null, records: rounds };
     });
   }
   return Array.from({ length: 12 }, (_, index) => {
     const key = `${yearPrefix}${String(index + 1).padStart(2, "0")}`;
     const rounds = sortedRecords(records.filter(record => record.date.startsWith(`${key}-`)));
-    return { key, label: `${index + 1}月`, value: rounds.length ? summarizeHistory(rounds).average : null, records: rounds };
+    return { key, label: `${index + 1}月`, value: rounds.length ? summarizeHistory(rounds, scope).average : null, records: rounds };
   });
 }

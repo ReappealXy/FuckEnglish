@@ -233,3 +233,19 @@ Summary: `build: prepare Windows 0.1.8 installer and portable release`
 Description: 版本升级至 0.1.8，同步 README、版本说明和免安装使用说明，沿用稳定应用标识及原位置更新规则。安装 EXE、完整便携目录、便携 ZIP 和 SHA256 清单按新版本目录交付，保留旧包；本阶段实际检查结果与范围见 VERIFICATION.md 的 0.1.8 记录。
 
 大白话：安装版和免安装版都会带上这次功能和说明，新旧包分开放，方便直接试用和比较。
+
+## 30. 0.1.9 全部 List 成绩与练习总览
+
+Summary: `feat: add all-List quiz trends and practice overview`
+
+Description: 测试记录默认选择“全部 List”，保留单个 List 切换，曲线、月历与全年热力图和明细同步筛选。日综合分先计算各 List 当天各轮均分，再对当天练过的 List 等权平均；月综合分再对练习日等权平均，缺测不计零分。按轮次按完成时间保留每条记录并标明 List，热力图累计所有 List 当天完成轮数，日期详情显示练习词表份数。总览新增练习词表覆盖数，历史明细增加 List 列。
+
+大白话：现在能看全部词表的整体进步和打卡，也能切回单个 List；一直重复测熟悉的词表，不会把综合成绩拉高。
+
+## 31. 0.1.9 Q 键切换与 Windows 交付
+
+Summary: `feat: switch learning windows with Q and package Windows 0.1.9`
+
+Description: 普通背词窗口支持按 Q 返回胶囊；鼠标位于收起或展开的胶囊上时支持按 Q 打开背词窗口，保留当前词表与测试进度。输入框、展开的菜单、组合键和长按重复输入暂停切换。版本升级至 0.1.9，同步 README、版本说明与便携使用说明，沿用原安装标识和设置目录，以新版本目录交付安装 EXE、免安装目录、ZIP 和 SHA256 清单；实际验证范围见 VERIFICATION.md。
+
+大白话：鼠标放在胶囊上按 Q 就能放大背词，背词窗口按 Q 就能回去；新版安装版和便携版分开交付，旧包继续保留。

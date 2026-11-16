@@ -195,6 +195,12 @@ export const Island = {
   setStudyAlwaysOnTop(enabled: boolean): Promise<void> {
     return call("Island.SetStudyAlwaysOnTop", enabled);
   },
+  setStudyShortcut(enabled: boolean): Promise<void> {
+    return call("Island.SetStudyShortcut", enabled);
+  },
+  toggleStudyShortcut(fromStudy: boolean): Promise<void> {
+    return call("Island.ToggleStudyShortcut", fromStudy);
+  },
 } as const;
 
 // ---- Events ----

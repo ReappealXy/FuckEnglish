@@ -58,7 +58,7 @@ export function IslandSurface(props: Props) {
           <LearningSelect id={preview ? "preview-mode" : "capsule-mode"} className="capsule-mode" label="学习模式" value={quiz?.direction || "browse"} disabled={!expanded || busy || !library?.selected} options={[{value:"browse",label:"浏览"},{value:"english-chinese",label:"英选中"}]} onOpenChange={open => { setModePickerOpen(open); if (open) setBookPickerOpen(false); }} onChange={value => { setBookPickerOpen(false); props.onMode?.(value); }} />
           <span class="wordbook-count">{library?.total ?? 0} 个单词</span>
           <div class="island-tools">
-            {!preview && <button type="button" class="island-study-button" aria-label="切换背词模式" title="切换背词模式" onClick={props.onStudy}>背词</button>}
+            {!preview && <button type="button" class="island-study-button" aria-label="切换背词模式" title="切换背词模式（Q）" aria-keyshortcuts="Q" onClick={props.onStudy}>背词</button>}
             <button type="button" aria-label="打开设置" disabled={preview} onClick={props.onSettings}><Glyph path="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8m0-6v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2" /></button>
             <button type="button" aria-label="收起胶囊" disabled={preview} onClick={props.onCollapse}><Glyph path="m6 15 6-6 6 6" /></button>
           </div>

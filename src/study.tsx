@@ -7,6 +7,7 @@ import { WindowTitlebar } from "./components/window-titlebar";
 import { transparencyStyle } from "./lib/learning-appearance";
 import { LearningSelect } from "./components/learning-select";
 import { quizChoiceFromEvent, quizNextFromEvent } from "./lib/quiz-shortcut";
+import { studyToggleFromEvent } from "./lib/study-shortcut";
 import "./island.css";
 import "./study.css";
 
@@ -79,6 +80,11 @@ export function StudyView() {
 
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
+      if (studyToggleFromEvent(event, document.activeElement, !!document.querySelector('[data-learning-select-open="true"]')) && !requestBusy.current) {
+        event.preventDefault();
+        void action(() => Island.toggleStudyShortcut(true));
+        return;
+      }
       if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const direction = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
       if (direction && pageShortcut(direction)) event.preventDefault();
@@ -109,7 +115,7 @@ export function StudyView() {
         </div>
         <div class="study-actions">
           <button type="button" onClick={() => void action(() => Island.openSettings())}>设置</button>
-          <button type="button" class="study-return" onClick={() => void action(() => Island.returnToCapsule())}>回到胶囊</button>
+          <button type="button" class="study-return" title="回到胶囊（Q）" aria-keyshortcuts="Q" onClick={() => void action(() => Island.returnToCapsule())}>回到胶囊</button>
         </div>
       </div>
       <section class="study-panel" aria-label="单词学习内容">

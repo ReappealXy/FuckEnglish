@@ -30,7 +30,7 @@ export function LearningContent(props: Props) {
 
   if (testing && quiz) return <>
     <div class={`vocabulary-page quiz-page${study ? " study-quiz-page" : ""}`}>
-      {quiz.completed ? <div class="quiz-message" role="status"><strong>本轮答对 {quiz.score} / {quiz.total} 题</strong><span>{quiz.skipped ? `${quiz.skipped} 个词因干扰项缺失或重复未参与本轮` : "本词表已全部测完"}</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.(quiz.direction)}>再测一轮</button><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
+      {quiz.completed ? <div class="quiz-message" role="status"><strong>本轮 {quiz.score * 2} 分 · 已保存</strong><span>答对 {quiz.score} · 答错 {quiz.total - quiz.score} · 跳过 {quiz.skipped}</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.(quiz.direction)}>再测一轮</button><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
       : quiz.total === 0 ? <div class="quiz-message" role="status"><strong>没有可测试的单词</strong><span>请在 Excel 中为每个词填写三个不同的中文干扰项，且不能与正确答案相同，再刷新词表。</span><span>原有单词仍可正常浏览。</span><div class="quiz-actions"><button type="button" disabled={busy} onClick={() => props.onMode?.("browse")}>返回浏览</button></div></div>
       : <><QuizHeading question={quiz.question} phonetic={quiz.phonetic} study={study} /><div class="quiz-options" role="group" aria-label="选择答案">{quiz.options.map((option, index) => {
         const correct = quiz.answered && index === quiz.correct;
@@ -38,7 +38,7 @@ export function LearningContent(props: Props) {
         return <button type="button" key={`${quiz.token}-${index}`} class={`quiz-choice${correct ? " correct" : ""}${wrong ? " wrong" : ""}`} disabled={busy || quiz.answered} aria-keyshortcuts={String(index + 1)} title={`按 ${index + 1} 选择`} aria-label={`${option}${correct ? "，正确答案" : wrong ? "，回答错误" : ""}`} onClick={() => props.onAnswer?.(quiz.token, index)}><span class="quiz-choice-text" tabIndex={quiz.answered ? 0 : -1}>{option}</span>{(correct || wrong) && <span class="quiz-mark">{correct ? "正确" : "选错"}</span>}</button>;
       })}</div></>}
     </div>
-    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || quizStatus}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" disabled={busy || !quiz.answered || autoAdvancing} onClick={() => props.onNext?.(quiz.token)}>{lastQuestion ? "完成" : autoAdvancing ? "自动下一题…" : "下一题"}</button></div>}</footer>
+    <footer class="island-statusbar vocabulary-footer quiz-footer"><span class="island-status" role="status" title={error || quizStatus}>{error || quizStatus}</span>{quiz.total > 0 && !quiz.completed && <div class="word-pagination"><span>{quiz.index + 1} / {quiz.total}</span><button type="button" title={lastQuestion ? "完成（数字 1 左侧的 ` 键）" : "下一题（数字 1 左侧的 ` 键）"} aria-keyshortcuts="`" disabled={busy || !quiz.answered || autoAdvancing} onClick={() => props.onNext?.(quiz.token)}>{lastQuestion ? "完成" : autoAdvancing ? "自动下一题…" : "下一题"}</button></div>}</footer>
   </>;
 
   return <>

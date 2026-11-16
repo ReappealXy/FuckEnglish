@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { WindowTitlebar } from "./components/window-titlebar";
 import { events, Library, Preferences, type LibraryState, type Settings } from "./mygo";
 import { IslandSurface } from "./components/island-surface";
+import { QuizHistory } from "./components/quiz-history";
 import { islandTheme, islandThemes } from "./lib/island-theme";
 import { paginateBooks, selectedBookPage } from "./lib/book-pagination";
 import "./island.css";
 import "./pages/island-settings.css";
 
-const tabs = ["词表文件夹", "单词模板", "常规", "收起样式", "展开外观", "面板主题", "悬浮与动画"];
+const tabs = ["词表文件夹", "测试记录", "单词模板", "常规", "收起样式", "展开外观", "面板主题", "悬浮与动画"];
 
 export function App() {
   const [library, setLibrary] = useState<LibraryState | null>(null);
@@ -21,6 +22,7 @@ export function App() {
   const [failed, setFailed] = useState(false);
   const [bookPage, setBookPage] = useState(0);
   const savedRef = useRef<Settings | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const books = library?.books ?? [];
   const bookList = paginateBooks(books, bookPage);
   useEffect(() => { setBookPage(selectedBookPage(books, library?.selected ?? "")); }, [library?.folder, library?.selected]);
@@ -29,10 +31,15 @@ export function App() {
     let active = true, gotLibrary = false, gotSettings = false;
     const offLibrary = events.library.on(s => { gotLibrary = true; setLibrary(s); });
     const offSettings = events.settings.on(s => { gotSettings = true; const previous = savedRef.current; setSaved(s); setForm(old => old && previous ? {...s, ...Object.fromEntries(Object.keys(old).filter(key => old[key as keyof Settings] !== previous[key as keyof Settings]).map(key => [key, old[key as keyof Settings]]))} : s); savedRef.current = s; });
-    const offNavigate = events.islandNavigate.on(() => setTab("词表文件夹"));
+    const resetView = () => {
+      setTab("词表文件夹"); setExpanded(true);
+      requestAnimationFrame(() => { if (mainRef.current) mainRef.current.scrollTop = 0; });
+    };
+    const offNavigate = events.islandNavigate.on(resetView);
+    const offOpened = events.settingsOpened.on(resetView);
     Library.snapshot().then(s => { if (active && !gotLibrary) { setLibrary(s); setFolder(s.folder); } }).catch(e => { setMessage(String(e)); setFailed(true); });
     Preferences.get().then(s => { if (active && !gotSettings) { setSaved(s); setForm(s); savedRef.current = s; } }).catch(e => { setMessage(String(e)); setFailed(true); });
-    return () => { active = false; offLibrary(); offSettings(); offNavigate(); };
+    return () => { active = false; offLibrary(); offSettings(); offNavigate(); offOpened(); };
   }, []);
   const set = (patch: Partial<Settings>) => setForm(old => old ? {...old, ...patch} : old);
   const run = async (action: () => Promise<unknown>, success = "") => {
@@ -44,8 +51,8 @@ export function App() {
   const save = () => run(async () => { if (!form) return; const s = await Preferences.save(form); savedRef.current = s; setSaved(s); setForm(s); }, "设置已保存");
   return <div class="app-shell">
     <WindowTitlebar subtitle="摸鱼背单词" />
-    <main class="app-main"><div class="deck-settings deck-palette">
-      <nav class="deck-settings-nav" aria-label="软件设置"><h2>单词胶囊</h2>{tabs.map(label => <button type="button" aria-current={tab === label ? "page" : undefined} class={tab === label ? "selected" : ""} onClick={() => { setTab(label); setExpanded(label !== "收起样式"); }}>{label}</button>)}<p class="app-version">FuckEnglish 0.1.7<br/>本地词表 · 随手翻阅</p></nav>
+    <main class="app-main" ref={mainRef}><div class="deck-settings deck-palette">
+      <nav class="deck-settings-nav" aria-label="软件设置"><h2>单词胶囊</h2>{tabs.map(label => <button type="button" aria-current={tab === label ? "page" : undefined} class={tab === label ? "selected" : ""} onClick={() => { setTab(label); setExpanded(label !== "收起样式"); }}>{label}</button>)}<p class="app-version">FuckEnglish 0.1.8<br/>本地词表 · 随手翻阅</p></nav>
       <div class="deck-settings-content">
         <div class="deck-preview-heading"><span>实时词表预览</span><div><button type="button" class={!expanded ? "selected" : ""} onClick={() => setExpanded(false)}>收起</button><button type="button" class={expanded ? "selected" : ""} onClick={() => setExpanded(true)}>展开</button></div></div>
         <div class="deck-preview" style={{height: `${expanded ? (form?.islandHeight ?? 200)+16 : 70}px`}}><div style={{width:"100%",maxWidth:`${(form?.islandWidth ?? 520)+24}px`,height:`${(form?.islandHeight ?? 200)+16}px`,margin:"0 auto"}}><IslandSurface preview settings={form} library={library} expanded={expanded} busy={busy} onSelect={name => void run(() => Library.select(name))} onPage={page => void run(() => Library.page(page))} onFocus={index => void run(() => Library.focus(index))} onMode={mode => void run(() => mode === "browse" ? Library.endQuiz() : Library.startQuiz(mode))} onOrder={order => void run(() => Library.setBrowseOrder(order))} onAnswer={(token, choice) => void run(() => Library.answerQuiz(token, choice))} onNext={token => void run(() => Library.nextQuiz(token))} /></div></div>
@@ -59,6 +66,7 @@ export function App() {
             {bookList.pages > 0 && <nav class="book-list-pagination" aria-label="设置词表分页"><span>共 {books.length} 份</span><button type="button" disabled={busy || bookList.page === 0} onClick={() => setBookPage(bookList.page - 1)}>上一页</button><span>{bookList.page + 1} / {bookList.pages}</span><button type="button" disabled={busy || bookList.page + 1 >= bookList.pages} onClick={() => setBookPage(bookList.page + 1)}>下一页</button></nav>}
             <p class="deck-settings-note">读取第一个工作表，表头使用：英文单词、音标、英文单词释义。第四列短语暂不展示。较长释义可在单元格内滚动阅读；点击英文可将该词显示在收起胶囊中。切换词表会记住各自页码。</p>
           </>}
+          {tab === "测试记录" && <QuizHistory library={library} />}
           {tab === "单词模板" && <div class="word-template"><p>下载七列 Excel 模板，按列填写后，保存到词表文件夹并刷新词表即可浏览。</p><div class="word-template-columns">{["英文单词", "音标", "英文单词释义", "常用短语", "中文干扰项1", "中文干扰项2", "中文干扰项3"].map(label => <span key={label}>{label}</span>)}</div><p>中文干扰项用于“看英文选中文”。填写三个不同的错误选项，不要填写正确答案。</p><p>缺少三个中文干扰项，或选项重复的单词仍可浏览，但不能参与小测。在胶囊顶部选择“英选中”开始测试。已有十列词表仍可使用。</p><button class="word-template-save" disabled={busy} onClick={() => void (async () => { setBusy(true); setMessage(""); setFailed(false); try { const path = await Library.saveTemplate(); if (path) setMessage(`模板已保存：${path}`); } catch (e) { setMessage(String(e)); setFailed(true); } finally { setBusy(false); } })()}>保存 Excel 模板…</button></div>}
           {form && tab === "常规" && <><Row label="显示单词胶囊"><Toggle checked={form.islandVisible} set={v => set({islandVisible:v})} label="显示单词胶囊"/></Row><Row label="鼠标悬浮展开"><Toggle checked={form.islandHover} set={v => set({islandHover:v})} label="鼠标悬浮展开"/></Row><Row label="开机启动"><Toggle checked={form.openAtLogin} set={v => set({openAtLogin:v})} label="开机启动"/></Row><p class="deck-settings-note">登录 Windows 后自动在托盘启动胶囊，不打开设置窗口。关闭主窗口后胶囊继续运行；完全退出请使用托盘菜单。</p></>}
           {form && tab === "收起样式" && <Row label="形态"><div class="deck-shape-choices">{([['capsule','胶囊'],['notch','刘海'],['line','指示条']] as const).map(([value,label]) => <button class={form.islandStyle === value ? "selected" : ""} aria-pressed={form.islandStyle === value} onClick={() => set({islandStyle:value})}><span class={`deck-shape deck-shape-${value}`}/>{label}</button>)}</div></Row>}

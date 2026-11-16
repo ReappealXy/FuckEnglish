@@ -6,7 +6,7 @@ import { LearningContent } from "./components/learning-content";
 import { WindowTitlebar } from "./components/window-titlebar";
 import { transparencyStyle } from "./lib/learning-appearance";
 import { LearningSelect } from "./components/learning-select";
-import { quizChoiceFromEvent } from "./lib/quiz-shortcut";
+import { quizChoiceFromEvent, quizNextFromEvent } from "./lib/quiz-shortcut";
 import "./island.css";
 import "./study.css";
 
@@ -86,6 +86,10 @@ export function StudyView() {
       if (choice !== null && !requestBusy.current && !document.querySelector('[data-learning-select-open="true"]')) {
         event.preventDefault();
         void action(() => Library.answerQuiz(library!.quiz.token, choice));
+      }
+      if (quizNextFromEvent(event, library?.quiz, document.activeElement) && !requestBusy.current && !document.querySelector('[data-learning-select-open="true"]')) {
+        event.preventDefault();
+        void action(() => Library.nextQuiz(library!.quiz.token));
       }
     };
     window.addEventListener("keydown", keydown);

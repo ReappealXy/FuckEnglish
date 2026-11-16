@@ -39,6 +39,8 @@ type quizQuestion struct {
 type quizSession struct {
 	direction                     string
 	id                            uint64
+	recordID, folder, book        string
+	historySaved                  bool
 	questions                     []quizQuestion
 	index, skipped, choice, score int
 	answered                      bool
@@ -69,7 +71,7 @@ func (c *Core) startQuizLocked(direction string) error {
 	if direction != englishToChinese {
 		return fmt.Errorf("请选择英选中")
 	}
-	q := quizSession{direction: direction, id: rand.Uint64(), choice: -1}
+	q := quizSession{direction: direction, id: rand.Uint64(), recordID: newQuizRecordID(), folder: c.cfg.Folder, book: c.cfg.Selected, choice: -1}
 	for _, w := range c.words[c.cfg.Selected] {
 		prompt, choices, ok := quizChoices(w)
 		if !ok {
@@ -135,6 +137,8 @@ func (l *Library) EndQuiz() (LibraryState, error) {
 
 func (l *Library) AnswerQuiz(token string, choice int) (LibraryState, error) {
 	autoAdvance := false
+	historyChanged := false
+	historyFolder := ""
 	s, err := l.core.quizChange(func() error {
 		s := l.core.quizSnapshotLocked()
 		if token == "" || s.Token != token || choice < 0 || choice >= len(s.Options) {
@@ -144,13 +148,26 @@ func (l *Library) AnswerQuiz(token string, choice int) (LibraryState, error) {
 		if q.answered {
 			return nil
 		}
-		q.choice, q.answered = choice, true
+		next := *q
+		next.choice, next.answered = choice, true
 		if choice == q.questions[q.index].correct {
-			q.score++
+			next.score++
 			autoAdvance = q.index+1 < len(q.questions)
 		}
+		if next.index+1 == len(next.questions) {
+			var err error
+			historyChanged, err = saveQuizRecord(&next, time.Now())
+			if err != nil {
+				return err
+			}
+			historyFolder = next.folder
+		}
+		*q = next
 		return nil
 	})
+	if err == nil && historyChanged {
+		_ = HistoryChangedEvent.Broadcast(historyFolder)
+	}
 	if err == nil && autoAdvance {
 		// One backend timer serves every view. The token makes a pending
 		// advance harmless after a restart, book switch, refresh or manual next.

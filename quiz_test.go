@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -12,6 +13,19 @@ import (
 
 func quizCore(t *testing.T) *Core {
 	c := testCore(t)
+	// Completing quiz tests must never write histories beside repository fixtures.
+	folder := t.TempDir()
+	for _, name := range []string{"list1.xlsx", "list2.xlsx"} {
+		data, err := os.ReadFile(filepath.Join(c.cfg.Folder, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(folder, name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c.cfg.Folder = folder
+	c.scanLocked()
 	c.words[c.cfg.Selected] = []wordbook.Word{
 		{English: "aircraft", Phonetic: "[ˈeəkrɑːft]", Meaning: "n. 航空器；飞行器", ChineseDistractors: []string{"n. 机场", "n. 飞行员", "n. 跑道"}},
 		{English: "aisle", Meaning: "n. 过道", ChineseDistractors: []string{"n. 岛屿", "n. 出口", "n. 座位"}},

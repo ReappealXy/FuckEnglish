@@ -4,12 +4,36 @@ package main
 
 import (
 	"fmt"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
 	"github.com/egoist/mygo"
 	"golang.org/x/sys/windows"
 )
+
+var islandQuizNextHeld atomic.Bool
+
+// MOD_NOREPEAT can reset when another key is pressed. A user may keep this key
+// held while answering the next question, so wait for its actual release too.
+func acceptIslandQuizNextPress() bool {
+	if !islandQuizNextHeld.CompareAndSwap(false, true) {
+		return false
+	}
+	go func() {
+		getKeyState := windows.NewLazySystemDLL("user32.dll").NewProc("GetAsyncKeyState")
+		ticker := time.NewTicker(16 * time.Millisecond)
+		defer ticker.Stop()
+		for range ticker.C {
+			state, _, _ := getKeyState.Call(0xC0) // VK_OEM_3, matching MyGo's "`" registration.
+			if state&0x8000 == 0 {
+				islandQuizNextHeld.Store(false)
+				return
+			}
+		}
+	}()
+	return true
+}
 
 // BrimDeck's overlay does not activate on hover. Tool-window identity also
 // keeps this app-owned surface out of Alt+Tab and taskbar window previews.

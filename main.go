@@ -10,6 +10,7 @@ import (
 var applicationQuitting bool
 var mainWin *mygo.Window
 var appCore *Core
+var SettingsOpenedEvent = mygo.NewEvent[bool]("settings-opened")
 
 func main() {
 	app := mygo.App
@@ -51,10 +52,14 @@ func main() {
 }
 func showMainWindow() {
 	if mainWin != nil && !mainWin.IsDestroyed() {
+		wasHidden := !mainWin.IsVisible()
 		if mainWin.IsMinimized() {
 			mainWin.Restore()
 		}
 		mainWin.Show()
+		if wasHidden {
+			_ = SettingsOpenedEvent.Broadcast(true)
+		}
 		mainWin.Focus()
 		return
 	}

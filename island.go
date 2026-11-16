@@ -60,6 +60,7 @@ var IslandDismissEvent = mygo.NewEvent[bool]("island-dismiss")
 var IslandPointerEvent = mygo.NewEvent[bool]("island-pointer")
 var IslandPageEvent = mygo.NewEvent[int]("island-page")
 var IslandQuizChoiceEvent = mygo.NewEvent[int]("island-quiz-choice")
+var IslandQuizNextEvent = mygo.NewEvent[bool]("island-quiz-next")
 var SettingsEvent = mygo.NewEvent[Settings]("settings")
 
 type Island struct{ core *Core }
@@ -118,7 +119,7 @@ func updateIslandQuizShortcuts() {
 	islandQuizActive = active
 	if !active {
 		if islandQuizRegistered {
-			for _, key := range []string{"1", "2", "3", "4"} {
+			for _, key := range []string{"1", "2", "3", "4", "`"} {
 				mygo.GlobalShortcut.Unregister(key)
 			}
 			islandQuizRegistered = false
@@ -128,7 +129,7 @@ func updateIslandQuizShortcuts() {
 	for _, key := range []struct {
 		name   string
 		choice int
-	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}} {
+	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}, {"`", -1}} {
 		if mygo.GlobalShortcut.IsRegistered(key.name) {
 			return
 		}
@@ -137,11 +138,17 @@ func updateIslandQuizShortcuts() {
 	for _, key := range []struct {
 		name   string
 		choice int
-	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}} {
+	}{{"1", 0}, {"2", 1}, {"3", 2}, {"4", 3}, {"`", -1}} {
 		choice := key.choice
 		if err := mygo.GlobalShortcut.Register(key.name, func() {
 			if !studyActive && islandExpanded && islandPointerInside && islandQuizAllowed {
-				_ = IslandQuizChoiceEvent.Broadcast(choice)
+				if choice < 0 {
+					if acceptIslandQuizNextPress() {
+						_ = IslandQuizNextEvent.Broadcast(true)
+					}
+				} else {
+					_ = IslandQuizChoiceEvent.Broadcast(choice)
+				}
 			}
 		}); err != nil {
 			for _, name := range registered {

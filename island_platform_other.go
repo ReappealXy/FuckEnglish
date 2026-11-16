@@ -6,3 +6,4 @@ import "github.com/egoist/mygo"
 
 func configureIslandOverlay(*mygo.Window) error     { return nil }
 func startIslandPointer(*mygo.Window, *Core) func() { return func() {} }
+func acceptIslandQuizNextPress() bool               { return true }

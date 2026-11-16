@@ -42,6 +42,29 @@ export interface LibraryState {
   quiz: QuizState;
 }
 
+export interface QuizHistoryState {
+  folder: string;
+  records: QuizRecord[];
+}
+
+/**
+ * One record represents one finished attempt, including words skipped because
+ * their authored choices are missing. Each correct word is always worth 2 points.
+ */
+export interface QuizRecord {
+  id: string;
+  book: string;
+  completedAt: string;
+  date: string;
+  correct: number;
+  wrong: number;
+  skipped: number;
+  total: number;
+  score: number;
+  attempt: number;
+  dailyAttempt: number;
+}
+
 export interface QuizState {
   direction: string;
   token: string;
@@ -105,6 +128,9 @@ export const Library = {
   /** PickFolder only picks. The user presses Save to switch the word directory. */
   pickFolder(): Promise<string> {
     return call("Library.PickFolder");
+  },
+  quizHistory(): Promise<QuizHistoryState> {
+    return call("Library.QuizHistory");
   },
   refresh(): Promise<LibraryState> {
     return call("Library.Refresh");
@@ -175,12 +201,15 @@ export const Island = {
 
 /** Events sent by the Go side. Subscribe with `events.name.on(listener)`. */
 export const events = {
+  historyChanged: event<string>("history-changed"),
   islandWindow: event<IslandWindowState>("island-window"),
   islandDismiss: event<boolean>("island-dismiss"),
   islandPointer: event<boolean>("island-pointer"),
   islandPage: event<number>("island-page"),
   islandQuizChoice: event<number>("island-quiz-choice"),
+  islandQuizNext: event<boolean>("island-quiz-next"),
   settings: event<Settings>("settings"),
   islandNavigate: event<string>("island-navigate"),
+  settingsOpened: event<boolean>("settings-opened"),
   library: event<LibraryState>("library"),
 } as const;

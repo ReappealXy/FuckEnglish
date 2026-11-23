@@ -56,7 +56,7 @@ func showStudyWindow(core *Core) {
 	}
 	w := mygo.NewWindow(mygo.WindowOptions{
 		Title: "FuckEnglish · 背单词", URL: "/?view=study",
-		Width: 900, Height: 640, MinWidth: 560, MinHeight: 420,
+		Width: 900, Height: 640, MinWidth: 380, MinHeight: 300,
 		TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: 48,
 		Transparent: true, BackgroundColor: "#00000000", Vibrancy: mygo.VibrancyHUD,
 		Hidden: true, DisableShadow: true, StateKey: "study",
